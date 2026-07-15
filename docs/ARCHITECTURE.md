@@ -20,6 +20,7 @@ EnterVRIME is intentionally small. It coordinates four existing systems instead 
 | `overlay.py` | OpenVR connection and raw overlay frames |
 | `osc.py` | Minimal OSC encoder and VRChat chatbox client |
 | `tray.py` | Windows notification-area controls |
+| `diagnostics.py` | Session logs, exception hooks, privacy filtering, and ZIP export |
 
 ## Design choices
 
@@ -37,4 +38,4 @@ VRChat officially supports UTF-8 chatbox text through `/chatbox/input`. OSC avoi
 
 ## Privacy boundary
 
-No input is persisted. No telemetry or remote API is used. The default network destination is loopback (`127.0.0.1:9000`).
+No input text, IME composition, or candidate words are persisted. Local diagnostics retain component state, error codes, and stack traces; exported archives redact user-profile paths and usernames. No telemetry or remote API is used. The default network destination is loopback (`127.0.0.1:9000`).

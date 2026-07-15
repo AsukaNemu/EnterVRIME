@@ -42,6 +42,14 @@ EnterVRIME gives focus to a native Windows text field, captures the text field a
 
 See [Architecture](docs/ARCHITECTURE.md) for details.
 
+## Testing and diagnostics
+
+Every run creates a local session log under `%LOCALAPPDATA%\EnterVRIME\logs`. The control window and tray menu can export a diagnostic ZIP containing environment details, component status, error codes, stack traces, and recent logs.
+
+Chat text, IME composition, and candidate words are never logged. Exported archives also redact the Windows username and user-profile paths. If the app exits before an archive can be exported, use the console-enabled `EnterVRIME-Debug-*-win-x64.zip` package and attach the latest log files to your issue.
+
+Error-code groups are `E1xx` startup/configuration, `E2xx` hotkey, `E3xx` SteamVR/overlay, `E4xx` capture, `E5xx` OSC, and `E9xx` unhandled exceptions or crashes.
+
 ## Compatibility
 
 | Environment | Status |

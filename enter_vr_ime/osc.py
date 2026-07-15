@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import socket
+import logging
 import struct
 from collections.abc import Iterable
 from typing import Any
@@ -36,19 +37,34 @@ def build_osc_message(address: str, arguments: Iterable[Any] = ()) -> bytes:
 
 
 class VRChatOscClient:
-    def __init__(self, host: str = "127.0.0.1", port: int = 9000) -> None:
+    def __init__(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 9000,
+        logger: logging.Logger | None = None,
+    ) -> None:
         self.target = (host, port)
+        self.logger = logger or logging.getLogger(__name__)
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.logger.info("E500 osc_client_ready port=%d", port)
 
     def send_typing(self, active: bool) -> None:
         self._send("/chatbox/typing", [active])
+        self.logger.debug("E502 osc_typing_sent active=%s", active)
 
     def send_chatbox(self, text: str, notify_sound: bool = False) -> None:
         # True bypasses VRChat's virtual keyboard and sends immediately.
         self._send("/chatbox/input", [text, True, notify_sound])
+        self.logger.info(
+            "E503 osc_chatbox_sent characters=%d lines=%d notify=%s",
+            len(text),
+            text.count("\n") + 1,
+            notify_sound,
+        )
 
     def close(self) -> None:
         self._socket.close()
+        self.logger.info("E509 osc_client_closed")
 
     def _send(self, address: str, arguments: Iterable[Any]) -> None:
         self._socket.sendto(build_osc_message(address, arguments), self.target)

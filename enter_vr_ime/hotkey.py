@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import logging
 import queue
 import threading
 from ctypes import wintypes
@@ -35,8 +36,9 @@ class MSG(ctypes.Structure):
 class EnterHotkey:
     """Own a thread-scoped, no-modifier Return hotkey without an admin hook."""
 
-    def __init__(self, events: queue.Queue[str]) -> None:
+    def __init__(self, events: queue.Queue[str], logger: logging.Logger) -> None:
         self.events = events
+        self.logger = logger
         self._ready = threading.Event()
         self._thread = threading.Thread(target=self._message_loop, name="enter-hotkey", daemon=True)
         self._thread_id = 0
@@ -49,7 +51,9 @@ class EnterHotkey:
 
     def start(self) -> None:
         self._thread.start()
-        self._ready.wait(timeout=2.0)
+        if not self._ready.wait(timeout=2.0):
+            self.error = "[E202] 回车监听线程启动超时"
+            self.logger.error("E202 hotkey_thread_start_timeout")
 
     def enable(self) -> None:
         self._post(WM_ENABLE_HOTKEY)
@@ -59,7 +63,9 @@ class EnterHotkey:
 
     def stop(self) -> None:
         self._post(WM_STOP_HOTKEY)
-        self._thread.join(timeout=1.0)
+        if self._thread.is_alive():
+            self._thread.join(timeout=1.0)
+        self.logger.info("E209 hotkey_stopped")
 
     def _post(self, message: int) -> None:
         if self._thread_id:
@@ -71,12 +77,17 @@ class EnterHotkey:
         success = ctypes.windll.user32.RegisterHotKey(None, HOTKEY_ID, MOD_NOREPEAT, VK_RETURN)
         self._registered = bool(success)
         if not success:
-            self.error = "回车键被其他程序占用"
+            self.error = "[E201] 回车键被其他程序占用"
+            self.logger.error("E201 hotkey_register_failed")
+        else:
+            self.error = None
+            self.logger.info("E200 hotkey_registered key=Enter")
 
     def _unregister(self) -> None:
         if self._registered:
             ctypes.windll.user32.UnregisterHotKey(None, HOTKEY_ID)
             self._registered = False
+            self.logger.debug("E208 hotkey_unregistered")
 
     def _message_loop(self) -> None:
         self._thread_id = ctypes.windll.kernel32.GetCurrentThreadId()

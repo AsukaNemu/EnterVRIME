@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -27,7 +28,7 @@ def app_data_dir() -> Path:
     return path
 
 
-def load_config() -> AppConfig:
+def load_config(logger: logging.Logger | None = None) -> AppConfig:
     path = app_data_dir() / "config.json"
     config = AppConfig()
     if path.exists():
@@ -36,12 +37,17 @@ def load_config() -> AppConfig:
             allowed = set(asdict(config))
             config = AppConfig(**{key: value for key, value in values.items() if key in allowed})
         except (OSError, ValueError, TypeError):
-            pass
+            if logger is not None:
+                logger.warning("E101 config_load_failed defaults_restored", exc_info=True)
 
     config.osc_port = max(1, min(65535, int(config.osc_port)))
     config.capture_fps = max(5, min(30, int(config.capture_fps)))
     config.max_characters = max(1, min(144, int(config.max_characters)))
-    save_config(config)
+    try:
+        save_config(config)
+    except OSError:
+        if logger is not None:
+            logger.error("E102 config_save_failed", exc_info=True)
     return config
 
 

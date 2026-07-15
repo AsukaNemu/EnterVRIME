@@ -89,6 +89,17 @@ flowchart LR
 
 更详细的技术说明见 [架构文档](docs/ARCHITECTURE.md)。
 
+## 外部测试与诊断
+
+让朋友测试时，不需要靠截图猜问题。EnterVRIME 会为每次运行生成本地会话日志，并在状态窗口和系统托盘提供“导出诊断包”。
+
+- 日志目录：`%LOCALAPPDATA%\EnterVRIME\logs`；
+- 诊断 ZIP：包含运行环境、SteamVR/热键/捕获/OSC 状态和最近日志；
+- 隐私保护：不记录聊天正文、拼音组合内容或候选词；导出时会隐藏用户目录和 Windows 用户名；
+- 启动即退出时：使用 Release 中的 `EnterVRIME-Debug-*-win-x64.zip`，控制台会保留更多现场信息。
+
+报错时请让测试者提供屏幕上的错误编号和诊断 ZIP。错误编号按区域分组：`E1xx` 启动/配置、`E2xx` 热键、`E3xx` SteamVR/悬浮层、`E4xx` 画面捕获、`E5xx` OSC、`E9xx` 未处理异常或崩溃。
+
 ## 兼容性
 
 | 组件 | 当前状态 |
@@ -156,13 +167,13 @@ python -m venv .venv
 .\build.cmd
 ```
 
-打包结果位于 `dist\EnterVRIME-v0.1.0-alpha.1-win-x64.zip`。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
+打包结果位于 `dist\EnterVRIME-v0.1.1-alpha.1-win-x64.zip` 和 `dist\EnterVRIME-Debug-v0.1.1-alpha.1-win-x64.zip`。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
 
 欢迎阅读 [贡献指南](CONTRIBUTING.md)，或提交 [Bug](../../issues/new?template=bug_report.yml) 与 [功能建议](../../issues/new?template=feature_request.yml)。
 
 ## 隐私与安全
 
-EnterVRIME 不包含账号系统、遥测或云端服务。输入文本仅发送到配置中的 OSC 地址，默认是本机 `127.0.0.1:9000`。安全问题请参阅 [SECURITY.md](SECURITY.md)。
+EnterVRIME 不包含账号系统、遥测或云端服务。输入文本仅发送到配置中的 OSC 地址，默认是本机 `127.0.0.1:9000`。诊断日志只记录状态与错误，不保存输入内容。安全问题请参阅 [SECURITY.md](SECURITY.md)。
 
 ## License
 

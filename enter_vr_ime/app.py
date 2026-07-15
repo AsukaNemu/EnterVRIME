@@ -4,12 +4,14 @@ import ctypes
 import queue
 import time
 import tkinter as tk
-from tkinter import ttk
+from pathlib import Path
+from tkinter import filedialog, messagebox, ttk
 
 import mss
 from PIL import Image
 
 from .config import AppConfig, load_config
+from .diagnostics import DiagnosticManager
 from .hotkey import EnterHotkey
 from .osc import VRChatOscClient
 from .overlay import OverlayPosition, SteamVROverlay
@@ -26,19 +28,25 @@ ERROR = "#fb7185"
 
 
 class VRChatImeApp:
-    def __init__(self) -> None:
-        self.config: AppConfig = load_config()
+    def __init__(self, diagnostics: DiagnosticManager) -> None:
+        self.diagnostics = diagnostics
+        self.logger = diagnostics.logger
+        self.config: AppConfig = load_config(self.logger)
+        self.logger.info("E103 config_ready values=%s", diagnostics.safe_config(self.config))
         self.events: queue.Queue[str] = queue.Queue()
         self.root = tk.Tk(className="EnterVRIME")
         self.root.withdraw()
         self.root.overrideredirect(True)
         self.root.configure(bg=BG)
         self.root.attributes("-topmost", True)
+        self.root.report_callback_exception = self._report_callback_exception
 
         self.active = False
         self.previous_foreground_window = 0
         self.last_text_change = 0.0
+        self.last_error_code = ""
         self.last_error = ""
+        self._capture_error_active = False
         self.control_window: tk.Toplevel | None = None
         self.control_status: tk.StringVar | None = None
         self.counter = tk.StringVar(value=f"0 / {self.config.max_characters}")
@@ -46,16 +54,28 @@ class VRChatImeApp:
 
         self._build_input_panel()
         self.capture = mss.mss()
-        self.osc = VRChatOscClient(self.config.osc_host, self.config.osc_port)
-        self.hotkey = EnterHotkey(self.events)
+        self.osc = VRChatOscClient(
+            self.config.osc_host,
+            self.config.osc_port,
+            self.logger,
+        )
+        self.hotkey = EnterHotkey(self.events, self.logger)
         self.overlay = SteamVROverlay(
             OverlayPosition(
                 self.config.overlay_width_m,
                 self.config.overlay_y_m,
                 self.config.overlay_z_m,
-            )
+            ),
+            self.logger,
         )
-        self.tray = TrayIcon(self.events)
+        self.tray = TrayIcon(self.events, self.logger)
+        self.logger.info(
+            "E104 ui_ready screen=%dx%d panel=%dx%d",
+            self.root.winfo_screenwidth(),
+            self.root.winfo_screenheight(),
+            self.config.window_width_px,
+            self.config.window_height_px,
+        )
 
     def run(self) -> None:
         self.hotkey.start()
@@ -65,10 +85,16 @@ class VRChatImeApp:
         self.root.after(50, self._poll_events)
         self.root.after(500, self._refresh_control_status)
         self.root.after(800, self.tray.notify_ready)
+        self.logger.info("E105 main_loop_started")
         try:
             self.root.mainloop()
         finally:
             self._shutdown_services()
+
+    def close_for_smoke_test(self) -> None:
+        self.osc.close()
+        self.capture.close()
+        self.root.destroy()
 
     def _build_input_panel(self) -> None:
         width = self.config.window_width_px
@@ -116,8 +142,6 @@ class VRChatImeApp:
         self.text.bind("<Escape>", self._on_escape)
         self.text.bind("<<Modified>>", self._on_text_modified)
 
-        # This space deliberately remains inside the captured panel: Windows IME
-        # candidate windows open below the caret and are captured here as pixels.
         candidate_space = tk.Frame(self.root, bg=PANEL, height=105)
         candidate_space.pack(fill="x", padx=34, pady=(12, 0))
         candidate_space.pack_propagate(False)
@@ -172,13 +196,19 @@ class VRChatImeApp:
         self.root.lift()
         self.root.update_idletasks()
         self.text.focus_force()
-        self.osc.send_typing(True)
+        try:
+            self.osc.send_typing(True)
+        except OSError as exc:
+            self._record_error("E501", "osc_typing_start_failed", exc)
+            self._set_message("[E501] OSC 输入状态发送失败；仍可继续输入", error=True)
         self.overlay.show()
+        self.logger.info("E110 input_activated")
         self.root.after(20, self._capture_frame)
 
     def send_input(self) -> None:
         text = self.text.get("1.0", "end-1c").rstrip("\n")
         if not text.strip():
+            self.logger.info("E112 empty_input_cancelled")
             self.cancel_input()
             return
         if len(text) > self.config.max_characters:
@@ -186,13 +216,16 @@ class VRChatImeApp:
                 f"超过 VRChat 的 {self.config.max_characters} 字限制，请删掉 {len(text) - self.config.max_characters} 字",
                 error=True,
             )
+            self.logger.warning("E113 input_too_long characters=%d", len(text))
             return
         try:
             self.osc.send_chatbox(text, self.config.notify_sound)
             self.osc.send_typing(False)
         except OSError as exc:
-            self._set_message(f"发送失败：{exc}", error=True)
+            self._record_error("E501", "osc_chat_send_failed", exc)
+            self._set_message("[E501] 发送失败，请导出诊断包", error=True)
             return
+        self.logger.info("E111 input_sent characters=%d lines=%d", len(text), text.count("\n") + 1)
         self._finish_input()
 
     def cancel_input(self) -> None:
@@ -200,8 +233,9 @@ class VRChatImeApp:
             return
         try:
             self.osc.send_typing(False)
-        except OSError:
-            pass
+        except OSError as exc:
+            self._record_error("E501", "osc_typing_stop_failed", exc)
+        self.logger.info("E114 input_cancelled")
         self._finish_input()
 
     def _finish_input(self) -> None:
@@ -212,13 +246,10 @@ class VRChatImeApp:
         if self.previous_foreground_window:
             try:
                 ctypes.windll.user32.SetForegroundWindow(self.previous_foreground_window)
-            except OSError:
-                pass
+            except OSError as exc:
+                self.logger.warning("E115 foreground_restore_failed type=%s", exc.__class__.__name__)
 
     def _on_return(self, _event: tk.Event) -> str:
-        # Microsoft Pinyin and Sogou normally consume Return while composing.
-        # The small guard also prevents a just-committed candidate from being
-        # sent by the same physical key press on IMEs that forward that event.
         if time.monotonic() - self.last_text_change < 0.08:
             return "break"
         self.root.after_idle(self.send_input)
@@ -240,7 +271,7 @@ class VRChatImeApp:
         length = len(self.text.get("1.0", "end-1c"))
         self.counter.set(f"{length} / {self.config.max_characters}")
         if length > self.config.max_characters:
-            self._set_message("文字过长，红色计数归零前无法发送", error=True)
+            self._set_message("文字过长，计数回到限制内前无法发送", error=True)
         else:
             self._set_message("正在输入；中文候选词会显示在下方")
 
@@ -257,8 +288,16 @@ class VRChatImeApp:
             image = Image.frombytes("RGB", shot.size, shot.bgra, "raw", "BGRX")
             rgba = image.convert("RGBA").tobytes()
             self.overlay.submit_rgba(rgba, width, height)
+            if self._capture_error_active:
+                self.logger.info("E402 capture_recovered")
+                self._capture_error_active = False
         except Exception as exc:
-            self.last_error = str(exc)
+            self.last_error_code = "E401"
+            self.last_error = exc.__class__.__name__
+            if not self._capture_error_active:
+                self.logger.error("E401 screen_capture_failed", exc_info=True)
+                self._capture_error_active = True
+                self._set_message("[E401] 画面捕获失败，请导出诊断包", error=True)
         interval_ms = max(33, round(1000 / self.config.capture_fps))
         self.root.after(interval_ms, self._capture_frame)
 
@@ -271,8 +310,8 @@ class VRChatImeApp:
         window = tk.Toplevel(self.root)
         self.control_window = window
         window.title("EnterVRIME")
-        window.geometry("620x470")
-        window.minsize(620, 470)
+        window.geometry("660x570")
+        window.minsize(660, 570)
         window.configure(bg="#f5f7fb")
         window.protocol("WM_DELETE_WINDOW", window.withdraw)
 
@@ -292,7 +331,7 @@ class VRChatImeApp:
             status_box,
             textvariable=self.control_status,
             font=("Microsoft YaHei UI", 11),
-            wraplength=510,
+            wraplength=550,
         ).pack(anchor="w")
         ttk.Label(
             status_box,
@@ -304,15 +343,21 @@ class VRChatImeApp:
             "1. 用 Virtual Desktop 连接 Quest 3，并启动 SteamVR。\n"
             "2. 从 SteamVR 启动 VRChat，不要使用 VDXR 直连。\n"
             "3. 在 VRChat 快捷菜单中打开 OSC。\n"
-            "4. 戴上头显后按回车，使用你原来的中文输入法；再按回车发送。"
+            "4. 戴上头显后按回车输入，再按回车发送。"
         )
         ttk.Label(
             body,
             text=instructions,
             justify="left",
             font=("Microsoft YaHei UI", 11),
-            wraplength=540,
-        ).pack(anchor="w", pady=22)
+            wraplength=580,
+        ).pack(anchor="w", pady=20)
+
+        diagnostics_row = ttk.LabelFrame(body, text="测试与诊断", padding=12)
+        diagnostics_row.pack(fill="x", pady=(0, 18))
+        ttk.Button(diagnostics_row, text="导出诊断包", command=self.export_diagnostics).pack(side="left")
+        ttk.Button(diagnostics_row, text="打开日志目录", command=self.open_logs_folder).pack(side="left", padx=8)
+        ttk.Button(diagnostics_row, text="复制诊断摘要", command=self.copy_diagnostic_summary).pack(side="left")
 
         buttons = ttk.Frame(body)
         buttons.pack(fill="x", side="bottom")
@@ -320,10 +365,71 @@ class VRChatImeApp:
         ttk.Button(buttons, text="隐藏到托盘", command=window.withdraw).pack(side="right", padx=10)
         ttk.Button(buttons, text="立即输入", command=self.activate_input).pack(side="left")
 
+    def export_diagnostics(self) -> None:
+        desktop = Path.home() / "Desktop"
+        parent = self.control_window if self.control_window is not None else self.root
+        destination = filedialog.asksaveasfilename(
+            parent=parent,
+            title="导出 EnterVRIME 诊断包",
+            initialdir=str(desktop if desktop.exists() else Path.home()),
+            initialfile=self.diagnostics.default_export_name(),
+            defaultextension=".zip",
+            filetypes=[("ZIP 诊断包", "*.zip")],
+        )
+        if not destination:
+            self.logger.info("E122 diagnostics_export_cancelled")
+            return
+        try:
+            result = self.diagnostics.export_zip(
+                Path(destination),
+                self.config,
+                self._diagnostic_status(),
+                self._display_info(),
+            )
+        except Exception as exc:
+            self._record_error("E123", "diagnostics_export_failed", exc)
+            messagebox.showerror("EnterVRIME", "[E123] 诊断包导出失败，请打开日志目录。", parent=parent)
+            return
+        messagebox.showinfo("EnterVRIME", f"诊断包已导出：\n{result}", parent=parent)
+
+    def open_logs_folder(self) -> None:
+        try:
+            self.diagnostics.open_logs_folder()
+        except OSError as exc:
+            self._record_error("E124", "logs_folder_open_failed", exc)
+            messagebox.showerror("EnterVRIME", "[E124] 无法打开日志目录。")
+
+    def copy_diagnostic_summary(self) -> None:
+        summary = self.diagnostics.build_summary(self._diagnostic_status())
+        self.root.clipboard_clear()
+        self.root.clipboard_append(summary)
+        self.root.update()
+        self.logger.info("E125 diagnostics_summary_copied")
+        messagebox.showinfo("EnterVRIME", "诊断摘要已复制到剪贴板。")
+
+    def _diagnostic_status(self) -> dict[str, object]:
+        return {
+            "overlay": self.overlay.state,
+            "hotkey_registered": self.hotkey.registered,
+            "hotkey_error": self.hotkey.error or "none",
+            "input_active": self.active,
+            "last_error_code": self.last_error_code or "none",
+            "last_error_type": self.last_error or "none",
+        }
+
+    def _display_info(self) -> dict[str, int]:
+        return {
+            "screen_width_px": self.root.winfo_screenwidth(),
+            "screen_height_px": self.root.winfo_screenheight(),
+            "panel_width_px": self.config.window_width_px,
+            "panel_height_px": self.config.window_height_px,
+        }
+
     def _refresh_control_status(self) -> None:
         if self.control_status is not None:
             hotkey_state = "回车键已就绪" if self.hotkey.registered else (self.hotkey.error or "回车键未就绪")
-            self.control_status.set(f"{self.overlay.state}\n{hotkey_state}")
+            error_state = f"\n最近错误：{self.last_error_code}" if self.last_error_code else ""
+            self.control_status.set(f"{self.overlay.state}\n{hotkey_state}{error_state}")
         if self.root.winfo_exists():
             self.root.after(500, self._refresh_control_status)
 
@@ -339,6 +445,10 @@ class VRChatImeApp:
                     self.activate_input()
                 elif event == "show_control":
                     self.show_control_window()
+                elif event == "export_diagnostics":
+                    self.export_diagnostics()
+                elif event == "open_logs":
+                    self.open_logs_folder()
                 elif event == "quit":
                     self.quit()
         except queue.Empty:
@@ -346,18 +456,51 @@ class VRChatImeApp:
         if self.root.winfo_exists():
             self.root.after(50, self._poll_events)
 
+    def _record_error(self, code: str, event: str, exc: BaseException) -> None:
+        self.last_error_code = code
+        self.last_error = exc.__class__.__name__
+        self.logger.error("%s %s type=%s", code, event, exc.__class__.__name__, exc_info=True)
+
+    def _report_callback_exception(
+        self,
+        exc_type: type[BaseException],
+        exc: BaseException,
+        tb: object,
+    ) -> None:
+        self.last_error_code = "E902"
+        self.last_error = exc.__class__.__name__
+        self.diagnostics.report_tk_exception(exc_type, exc, tb)
+        try:
+            messagebox.showerror("EnterVRIME", "[E902] 界面操作发生异常，请导出诊断包。")
+        except tk.TclError:
+            pass
+
     def quit(self) -> None:
         if self.active:
             self.cancel_input()
+        self.logger.info("E106 quit_requested")
         self.root.quit()
 
     def _shutdown_services(self) -> None:
+        self.logger.info("E107 services_stopping")
         try:
             self.hotkey.stop()
-        finally:
-            try:
-                self.overlay.stop()
-            finally:
-                self.osc.close()
-                self.capture.close()
-                self.tray.stop()
+        except Exception:
+            self.logger.error("E203 hotkey_stop_failed", exc_info=True)
+        try:
+            self.overlay.stop()
+        except Exception:
+            self.logger.error("E305 overlay_stop_failed", exc_info=True)
+        try:
+            self.osc.close()
+        except Exception:
+            self.logger.error("E504 osc_close_failed", exc_info=True)
+        try:
+            self.capture.close()
+        except Exception:
+            self.logger.error("E403 capture_close_failed", exc_info=True)
+        try:
+            self.tray.stop()
+        except Exception:
+            self.logger.error("E131 tray_stop_failed", exc_info=True)
+        self.logger.info("E108 services_stopped")

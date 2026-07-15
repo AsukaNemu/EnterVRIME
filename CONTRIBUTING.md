@@ -8,7 +8,7 @@ Thanks for helping make Chinese text input less awkward in VR.
 - Confirm that OSC is enabled in VRChat.
 - Search existing issues for the same headset, IME, or display-scaling problem.
 
-For bugs, include Windows version, display scaling, Virtual Desktop runtime, SteamVR version, IME name, and clear reproduction steps. Never attach personal dictionaries or text you did not intend to share.
+For bugs, include Windows version, display scaling, Virtual Desktop runtime, SteamVR version, IME name, the visible `E###` error code, and clear reproduction steps. Export a diagnostic ZIP from the control window or tray menu when possible. If the app exits too early, reproduce it with the Debug package and attach the latest files from `%LOCALAPPDATA%\EnterVRIME\logs`. Never attach personal dictionaries or text you did not intend to share.
 
 ## Local development
 

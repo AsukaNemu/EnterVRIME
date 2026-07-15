@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import ctypes
+import logging
 import threading
-import time
 from dataclasses import dataclass
 
 import openvr
@@ -18,8 +18,9 @@ class OverlayPosition:
 class SteamVROverlay:
     """Render the latest captured RGBA frame as a head-locked OpenVR overlay."""
 
-    def __init__(self, position: OverlayPosition) -> None:
+    def __init__(self, position: OverlayPosition, logger: logging.Logger) -> None:
         self.position = position
+        self.logger = logger
         self._thread = threading.Thread(target=self._run, name="steamvr-overlay", daemon=True)
         self._wake = threading.Event()
         self._stop = threading.Event()
@@ -35,16 +36,19 @@ class SteamVROverlay:
 
     def start(self) -> None:
         self._thread.start()
+        self.logger.info("E300 overlay_thread_started")
 
     def show(self) -> None:
         with self._lock:
             self._visible_requested = True
         self._wake.set()
+        self.logger.debug("E310 overlay_show_requested")
 
     def hide(self) -> None:
         with self._lock:
             self._visible_requested = False
         self._wake.set()
+        self.logger.debug("E311 overlay_hide_requested")
 
     def submit_rgba(self, rgba: bytes, width: int, height: int) -> None:
         with self._lock:
@@ -55,10 +59,14 @@ class SteamVROverlay:
         self._stop.set()
         self._wake.set()
         self._thread.join(timeout=3.0)
+        self.logger.info("E309 overlay_thread_stopped")
 
-    def _set_state(self, value: str) -> None:
+    def _set_state(self, value: str) -> bool:
         with self._lock:
+            if self._state == value:
+                return False
             self._state = value
+            return True
 
     def _run(self) -> None:
         overlay = None
@@ -72,7 +80,8 @@ class SteamVROverlay:
                 except Exception:
                     hmd_present = False
                 if not hmd_present:
-                    self._set_state("等待 Virtual Desktop 与 SteamVR 头显连接")
+                    if self._set_state("等待 Virtual Desktop 与 SteamVR 头显连接"):
+                        self.logger.info("E301 hmd_waiting")
                     self._wake.wait(timeout=2.0)
                     self._wake.clear()
                     continue
@@ -86,8 +95,11 @@ class SteamVROverlay:
                     self._configure(overlay, handle)
                     shown = False
                     self._set_state("SteamVR 已连接")
+                    self.logger.info("E302 overlay_connected")
                 except Exception as exc:  # OpenVR exposes several exception classes.
-                    self._set_state(f"SteamVR 未就绪：{self._friendly_error(exc)}")
+                    friendly = self._friendly_error(exc)
+                    self._set_state(f"[E303] SteamVR 未就绪：{friendly}")
+                    self.logger.warning("E303 overlay_connect_failed error=%s", friendly, exc_info=True)
                     try:
                         openvr.shutdown()
                     except Exception:
@@ -119,7 +131,9 @@ class SteamVROverlay:
                     overlay.hideOverlay(handle)
                     shown = False
             except Exception as exc:
-                self._set_state(f"SteamVR 连接中断：{self._friendly_error(exc)}")
+                friendly = self._friendly_error(exc)
+                self._set_state(f"[E304] SteamVR 连接中断：{friendly}")
+                self.logger.error("E304 overlay_frame_failed error=%s", friendly, exc_info=True)
                 overlay = None
                 handle = None
                 shown = False

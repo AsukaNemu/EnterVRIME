@@ -15,5 +15,7 @@ Include the affected version, reproduction steps, impact, and any suggested miti
 - EnterVRIME does not require administrator privileges.
 - It does not inject code into VRChat.
 - It does not collect telemetry or send text to a hosted service.
+- Session logs contain component state, error codes, and exception traces, but never chat text, IME composition, or candidate words.
+- Diagnostic ZIP exports redact the Windows username and user-profile paths.
 - OSC defaults to local loopback UDP at `127.0.0.1:9000`.
 - Release binaries are currently unsigned; verify that downloads come from this repository's Releases page.

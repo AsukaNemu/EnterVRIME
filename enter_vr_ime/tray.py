@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import queue
+import logging
 import threading
 from pathlib import Path
 
@@ -22,11 +23,14 @@ def _icon_image() -> Image.Image:
 
 
 class TrayIcon:
-    def __init__(self, events: queue.Queue[str]) -> None:
+    def __init__(self, events: queue.Queue[str], logger: logging.Logger) -> None:
         self.events = events
+        self.logger = logger
         menu = pystray.Menu(
             pystray.MenuItem("立即输入", lambda *_: self.events.put("activate"), default=True),
             pystray.MenuItem("状态与说明", lambda *_: self.events.put("show_control")),
+            pystray.MenuItem("导出诊断包", lambda *_: self.events.put("export_diagnostics")),
+            pystray.MenuItem("打开日志目录", lambda *_: self.events.put("open_logs")),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("退出", lambda *_: self.events.put("quit")),
         )
@@ -35,6 +39,7 @@ class TrayIcon:
 
     def start(self) -> None:
         self._thread.start()
+        self.logger.info("E130 tray_started")
 
     def notify_ready(self) -> None:
         try:
@@ -45,3 +50,4 @@ class TrayIcon:
     def stop(self) -> None:
         self.icon.stop()
         self._thread.join(timeout=2.0)
+        self.logger.info("E139 tray_stopped")
