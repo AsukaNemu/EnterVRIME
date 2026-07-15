@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="title desc">
+  <title id="title">EnterVRIME</title>
+  <desc id="desc">Press Enter. Type Chinese. Stay in VR.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06111f"/>
+      <stop offset="0.55" stop-color="#0b1e35"/>
+      <stop offset="1" stop-color="#112943"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1280" height="420" rx="28" fill="url(#bg)"/>
+  <circle cx="1120" cy="60" r="230" fill="#22d3ee" opacity="0.06"/>
+  <circle cx="120" cy="400" r="260" fill="#6366f1" opacity="0.07"/>
+  <g transform="translate(820 72)">
+    <path d="M56 72c32-45 86-60 144-60s112 15 144 60l26 102c7 28-10 57-38 65-20 6-42-2-54-20l-35-49c-12-17-31-27-52-27h-22c-21 0-40 10-52 27l-35 49c-12 18-34 26-54 20-28-8-45-37-38-65z" fill="none" stroke="url(#cyan)" stroke-width="8" filter="url(#glow)"/>
+    <path d="M102 91h196" stroke="#d8f8ff" stroke-width="6" stroke-linecap="round" opacity="0.82"/>
+    <rect x="88" y="264" width="220" height="62" rx="15" fill="#0f243d" stroke="#22d3ee" stroke-width="3"/>
+    <g fill="#9ceeff">
+      <rect x="106" y="281" width="22" height="12" rx="3"/><rect x="136" y="281" width="22" height="12" rx="3"/><rect x="166" y="281" width="22" height="12" rx="3"/><rect x="196" y="281" width="22" height="12" rx="3"/><rect x="226" y="281" width="22" height="12" rx="3"/><rect x="256" y="281" width="34" height="12" rx="3"/>
+      <rect x="120" y="302" width="42" height="10" rx="3"/><rect x="170" y="302" width="75" height="10" rx="3"/><rect x="253" y="302" width="28" height="10" rx="3"/>
+    </g>
+    <path d="M200 246v18" stroke="#22d3ee" stroke-width="4" stroke-linecap="round" stroke-dasharray="3 8"/>
+  </g>
+  <g transform="translate(76 85)">
+    <rect width="102" height="102" rx="24" fill="url(#cyan)"/>
+    <text x="51" y="69" text-anchor="middle" font-family="Microsoft YaHei UI, Noto Sans CJK SC, sans-serif" font-size="54" font-weight="700" fill="#07111f">中</text>
+    <text x="0" y="177" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="68" font-weight="750" fill="#f8fafc">EnterVR<tspan fill="#22d3ee">IME</tspan></text>
+    <text x="2" y="229" font-family="Segoe UI, Microsoft YaHei UI, sans-serif" font-size="28" font-weight="500" fill="#a9bdd3">Press Enter. Type Chinese. Stay in VR.</text>
+    <text x="2" y="278" font-family="Microsoft YaHei UI, Noto Sans CJK SC, sans-serif" font-size="24" fill="#7ddff0">按下回车，输入中文，不摘头显</text>
+  </g>
+</svg>
+
