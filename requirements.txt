@@ -1,0 +1,5 @@
+openvr==2.12.1401
+mss==10.1.0
+Pillow==12.2.0
+pystray==0.19.5
+pyinstaller==6.16.0
