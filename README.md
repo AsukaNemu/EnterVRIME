@@ -44,7 +44,7 @@ EnterVRIME 保留了中文互联网用户已经熟悉的交互：
 
 - **不改变输入习惯**：复用 Windows 原生中文输入法和个人词频。
 - **候选词真正可见**：捕获输入区域与系统候选窗，显示为头显内悬浮层。
-- **一键进入、一键发送**：全局回车唤出输入，确认候选后再次回车发送。
+- **一键进入、一键发送**：仅当 VRChat 位于前台时，回车才会唤出输入；确认候选后再次回车发送。
 - **沉浸式显示**：面板固定在视野下方，不遮挡主要游戏画面。
 - **本地优先**：文本只通过本机 UDP 发往 VRChat OSC，不经过云端服务器。
 - **开箱即用**：Release 提供免安装 Windows 便携包。
@@ -100,7 +100,9 @@ flowchart LR
 
 报错时请让测试者提供屏幕上的错误编号和诊断 ZIP。错误编号按区域分组：`E1xx` 启动/配置、`E2xx` 热键、`E3xx` SteamVR/悬浮层、`E4xx` 画面捕获、`E5xx` OSC、`E9xx` 未处理异常或崩溃。
 
-状态窗口会直接检查 VRChat 是否真的监听 OSC 端口。出现 `E505` 时，请在 VRChat 操作菜单中把 `OSC → Enabled` 先关闭再打开；看到“OSC：VRChat 已监听”后，保留的文字即可再次按回车发送。
+状态窗口会直接检查 VRChat 是否真的监听 OSC 端口。出现 `E505` 时，请打开 VRChat 的 `操作菜单 → OSC → OSC Debug`；看到“OSC：VRChat 已监听”后，保留的文字即可再次按回车发送。
+
+回车热键采用前台白名单：只有 `VRChat.exe` 是当前前台窗口时才注册。切换到浏览器、启动器或桌面后会立即注销，不会吞掉回车或抢走焦点。
 
 ## 兼容性
 
@@ -127,7 +129,7 @@ flowchart LR
 
 请在 VRChat 快捷菜单中启用 OSC，并确认没有其他软件占用默认 UDP 端口 `9000`。
 
-如果状态窗口显示 `E505`，请进入 VRChat 操作菜单，把 `OSC → Enabled` 先关闭再打开。即使设置页看起来已经启用，也应重新切换一次，直到 EnterVRIME 显示“OSC：VRChat 已监听”。
+如果状态窗口显示 `E505`，请打开 VRChat 的 `操作菜单 → OSC → OSC Debug` 页面。打开该页面也会强制启用 OSC；等待 EnterVRIME 显示“OSC：VRChat 已监听”后再发送。
 
 </details>
 
@@ -171,7 +173,7 @@ python -m venv .venv
 .\build.cmd
 ```
 
-打包结果位于 `dist\EnterVRIME-v0.1.2-alpha.1-win-x64.zip` 和 `dist\EnterVRIME-Debug-v0.1.2-alpha.1-win-x64.zip`。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
+打包结果位于 `dist\EnterVRIME-v0.1.3-alpha.1-win-x64.zip` 和 `dist\EnterVRIME-Debug-v0.1.3-alpha.1-win-x64.zip`。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
 
 欢迎阅读 [贡献指南](CONTRIBUTING.md)，或提交 [Bug](../../issues/new?template=bug_report.yml) 与 [功能建议](../../issues/new?template=feature_request.yml)。
 

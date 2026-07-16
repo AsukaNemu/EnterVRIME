@@ -4,7 +4,7 @@ EnterVRIME is intentionally small. It coordinates four existing systems instead 
 
 ## Data flow
 
-1. A thread-scoped Windows global hotkey listens for `Enter` while the app is idle.
+1. A thread-scoped Windows hotkey listens for `Enter` only while `VRChat.exe` owns the foreground window and the app is idle.
 2. The hotkey is temporarily unregistered while a native Tk text widget owns keyboard focus.
 3. Windows IME handles composition, candidate ranking, and personal dictionaries as usual.
 4. The visible input region and candidate popup are captured at 10 FPS; unchanged frames are not resubmitted.
@@ -21,6 +21,7 @@ EnterVRIME is intentionally small. It coordinates four existing systems instead 
 | `osc.py` | Minimal OSC encoder and VRChat chatbox client |
 | `tray.py` | Windows notification-area controls |
 | `diagnostics.py` | Session logs, exception hooks, privacy filtering, and ZIP export |
+| `windows.py` | Foreground-window ownership checks for the VRChat-only hotkey gate |
 
 ## Design choices
 

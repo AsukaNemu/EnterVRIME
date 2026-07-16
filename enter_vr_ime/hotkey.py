@@ -94,7 +94,6 @@ class EnterHotkey:
         # Force Windows to create this thread's message queue before signalling ready.
         msg = MSG()
         ctypes.windll.user32.PeekMessageW(ctypes.byref(msg), None, 0, 0, 0)
-        self._register()
         self._ready.set()
 
         while True:

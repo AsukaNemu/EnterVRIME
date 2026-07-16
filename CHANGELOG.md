@@ -2,6 +2,19 @@
 
 All notable changes to EnterVRIME are documented here.
 
+## [0.1.3-alpha.1] - 2026-07-17
+
+### Fixed
+
+- Register the no-modifier `Enter` hotkey only while `VRChat.exe` owns the foreground window.
+- Fully release `Enter` to browsers, launchers, editors, and the desktop instead of swallowing unrelated key presses.
+- Defensively reject a queued activation if VRChat loses focus before the event is handled.
+
+### Changed
+
+- Start with the hotkey unregistered and dynamically follow foreground-window changes.
+- Direct `E505` recovery guidance to VRChat's `OSC Debug` screen, which also enables OSC.
+
 ## [0.1.2-alpha.1] - 2026-07-17
 
 ### Fixed

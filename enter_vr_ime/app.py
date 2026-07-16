@@ -16,6 +16,7 @@ from .hotkey import EnterHotkey
 from .osc import VRChatOscClient
 from .overlay import OverlayPosition, SteamVROverlay
 from .tray import TrayIcon
+from .windows import foreground_executable_name, is_vrchat_executable
 
 
 BG = "#07111f"
@@ -85,6 +86,7 @@ class VRChatImeApp:
         self.tray.start()
         self.show_control_window()
         self.root.after(50, self._poll_events)
+        self.root.after(100, self._refresh_hotkey_context)
         self.root.after(500, self._refresh_control_status)
         self.root.after(800, self.tray.notify_ready)
         self.logger.info("E105 main_loop_started")
@@ -187,7 +189,7 @@ class VRChatImeApp:
         self.counter.set(f"0 / {self.config.max_characters}")
         if self._update_osc_receiver_status() is False:
             self._set_message(
-                "[E505] VRChat 未监听 OSC；请打开操作菜单 → OSC → Enabled",
+                "[E505] VRChat 未监听 OSC；请打开操作菜单 → OSC → OSC Debug",
                 error=True,
             )
         else:
@@ -230,7 +232,7 @@ class VRChatImeApp:
             self.last_error_code = "E505"
             self.last_error = "OscReceiverMissing"
             self._set_message(
-                "[E505] VRChat 未监听 OSC；打开操作菜单 → OSC → Enabled 后再次回车",
+                "[E505] VRChat 未监听 OSC；打开操作菜单 → OSC → OSC Debug 后再次回车",
                 error=True,
             )
             self.logger.warning("E505 osc_receiver_missing port=%d", self.config.osc_port)
@@ -259,7 +261,6 @@ class VRChatImeApp:
         self.active = False
         self.overlay.hide()
         self.root.withdraw()
-        self.hotkey.enable()
         if self.previous_foreground_window:
             try:
                 ctypes.windll.user32.SetForegroundWindow(self.previous_foreground_window)
@@ -292,7 +293,7 @@ class VRChatImeApp:
         else:
             if self._osc_receiver_available is False:
                 self._set_message(
-                    "[E505] VRChat 未监听 OSC；请打开操作菜单 → OSC → Enabled",
+                    "[E505] VRChat 未监听 OSC；请打开操作菜单 → OSC → OSC Debug",
                     error=True,
                 )
             else:
@@ -453,13 +454,30 @@ class VRChatImeApp:
     def _refresh_control_status(self) -> None:
         self._update_osc_receiver_status()
         if self.control_status is not None:
-            hotkey_state = "回车键已就绪" if self.hotkey.registered else (self.hotkey.error or "回车键未就绪")
+            if self.hotkey.error:
+                hotkey_state = self.hotkey.error
+            elif self.active:
+                hotkey_state = "回车监听：输入中"
+            elif self.hotkey.registered:
+                hotkey_state = "回车监听：VRChat 前台，已就绪"
+            else:
+                hotkey_state = "回车监听：仅在 VRChat 位于前台时启用"
             error_state = f"\n最近错误：{self.last_error_code}" if self.last_error_code else ""
             self.control_status.set(
                 f"{self.overlay.state}\n{hotkey_state}\n{self._osc_receiver_label()}{error_state}"
             )
         if self.root.winfo_exists():
             self.root.after(1000, self._refresh_control_status)
+
+    def _refresh_hotkey_context(self) -> None:
+        foreground = foreground_executable_name()
+        should_register = not self.active and is_vrchat_executable(foreground)
+        if should_register and not self.hotkey.registered:
+            self.hotkey.enable()
+        elif not should_register and self.hotkey.registered:
+            self.hotkey.disable()
+        if self.root.winfo_exists():
+            self.root.after(150, self._refresh_hotkey_context)
 
     def _update_osc_receiver_status(self) -> bool | None:
         status = self.osc.receiver_status()
@@ -488,7 +506,7 @@ class VRChatImeApp:
         if self._osc_receiver_available is True:
             return f"OSC：VRChat 已监听 {self.config.osc_host}:{self.config.osc_port}"
         if self._osc_receiver_available is False:
-            return "OSC：[E505] 未检测到监听，请在操作菜单 → OSC → Enabled"
+            return "OSC：[E505] 未检测到监听，请打开操作菜单 → OSC → OSC Debug"
         return f"OSC：目标 {self.config.osc_host}:{self.config.osc_port}（远程或无法检测）"
 
     def _set_message(self, text: str, error: bool = False) -> None:
@@ -500,7 +518,14 @@ class VRChatImeApp:
             while True:
                 event = self.events.get_nowait()
                 if event == "activate":
-                    self.activate_input()
+                    foreground = foreground_executable_name()
+                    if is_vrchat_executable(foreground):
+                        self.activate_input()
+                    else:
+                        self.logger.debug(
+                            "E210 hotkey_activation_ignored foreground=%s",
+                            foreground or "unknown",
+                        )
                 elif event == "show_control":
                     self.show_control_window()
                 elif event == "export_diagnostics":
