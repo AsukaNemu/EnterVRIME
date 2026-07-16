@@ -2,6 +2,22 @@
 
 All notable changes to EnterVRIME are documented here.
 
+## [0.1.5-alpha.1] - 2026-07-17
+
+### Fixed
+
+- Route every visible frame update through a true triple-buffer ring instead of rewriting the top layer in place.
+- Keep all three opaque layers alive after warm-up and update only an occluded back layer before promoting its sort order.
+- Preserve the last valid top layer indefinitely when SteamVR returns transient `OverlayError_RequestFailed` responses.
+- Stop transient upload failures from destroying and rebuilding the complete OpenVR overlay session.
+- Hand over a stuck three-layer pool to a fresh pool only after its replacement top layer is visible.
+- Clear submitted frames between input sessions so a previous message cannot flash before the first fresh capture.
+
+### Added
+
+- A prominent in-app reminder that VRChat OSC must be enabled before sending.
+- A SteamVR smoke-test fault injection that verifies recovery after more transient failures than the old reconnect threshold.
+
 ## [0.1.4-alpha.1] - 2026-07-17
 
 ### Fixed

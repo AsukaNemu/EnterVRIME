@@ -32,7 +32,7 @@ class FakeOverlay:
 
 
 class OverlaySwapChainTests(unittest.TestCase):
-    def test_third_generation_is_presented_before_oldest_is_hidden(self) -> None:
+    def test_all_three_layers_stay_visible_and_oldest_is_recycled_under_top(self) -> None:
         overlay = FakeOverlay()
         chain = _OverlaySwapChain(overlay, [100, 101, 102])
         chain.set_visible(True)
@@ -41,15 +41,38 @@ class OverlaySwapChainTests(unittest.TestCase):
         self.assertEqual(chain.visible_indices, [0, 1])
 
         chain.promote(lambda handle: overlay.calls.append(("submit", handle)), True)
-
         self.assertEqual(chain.active_handle, 102)
-        self.assertEqual(chain.visible_indices, [1, 2])
-        show_new = overlay.calls.index(("show", 102))
-        hide_old = overlay.calls.index(("hide", 100))
-        self.assertLess(show_new, hide_old)
+        self.assertEqual(chain.visible_indices, [0, 1, 2])
+        self.assertNotIn(("hide", 100), overlay.calls)
+
+        def submit_under_top(handle: int) -> None:
+            self.assertEqual(chain.active_handle, 102)
+            overlay.calls.append(("submit", handle))
+
+        chain.promote(submit_under_top, True)
+
+        self.assertEqual(chain.active_handle, 100)
+        self.assertEqual(chain.visible_indices, [1, 2, 0])
+        self.assertEqual(overlay.calls.count(("show", 100)), 1)
+        self.assertFalse(any(call[0] == "hide" for call in overlay.calls))
+
+    def test_upload_waits_behind_old_frame_before_promoting_new_frame(self) -> None:
+        overlay = FakeOverlay()
+        chain = _OverlaySwapChain(overlay, [150, 151, 152])
+        chain.set_visible(True)
+
+        chain.promote(lambda handle: overlay.calls.append(("submit", handle)), True)
+
+        submit_new = overlay.calls.index(("submit", 151))
         self.assertEqual(
-            overlay.calls[show_new + 1 : hide_old],
-            [("wait", 50), ("wait", 50)],
+            overlay.calls[submit_new : submit_new + 5],
+            [
+                ("submit", 151),
+                ("wait", 50),
+                ("sort", 151, 2),
+                ("show", 151),
+                ("wait", 50),
+            ],
         )
 
     def test_failed_standby_upload_tries_the_next_hidden_slot(self) -> None:
@@ -81,10 +104,28 @@ class OverlaySwapChainTests(unittest.TestCase):
         self.assertEqual(chain.visible_indices, [0, 1])
         self.assertEqual(overlay.calls.count(("wait", 50)), 2)
 
+    def test_failed_back_buffer_uploads_preserve_the_current_top_layer(self) -> None:
+        overlay = FakeOverlay()
+        chain = _OverlaySwapChain(overlay, [275, 276, 277])
+        chain.set_visible(True)
+        chain.promote(lambda _handle: None, True)
+        chain.promote(lambda _handle: None, True)
+
+        def fail_submit(_handle: int) -> None:
+            raise RuntimeError("OverlayError_RequestFailed")
+
+        with self.assertRaisesRegex(RuntimeError, "RequestFailed"):
+            chain.promote(fail_submit, True)
+
+        self.assertEqual(chain.active_handle, 277)
+        self.assertEqual(chain.visible_indices, [0, 1, 2])
+        self.assertFalse(any(call[0] == "hide" for call in overlay.calls))
+
     def test_hide_releases_every_visible_generation(self) -> None:
         overlay = FakeOverlay()
         chain = _OverlaySwapChain(overlay, [300, 301, 302])
         chain.set_visible(True)
+        chain.promote(lambda _handle: None, True)
         chain.promote(lambda _handle: None, True)
 
         chain.set_visible(False)
@@ -92,6 +133,7 @@ class OverlaySwapChainTests(unittest.TestCase):
         self.assertEqual(chain.visible_indices, [])
         self.assertIn(("hide", 300), overlay.calls)
         self.assertIn(("hide", 301), overlay.calls)
+        self.assertIn(("hide", 302), overlay.calls)
 
     def test_failed_hide_remains_tracked_for_a_later_retry(self) -> None:
         overlay = FakeOverlay()

@@ -19,7 +19,8 @@ EnterVRIME is a lightweight Windows companion for VRChat PCVR. Press `Enter` on 
 - Keeps Microsoft Pinyin, Sogou, and other native Windows IME behavior.
 - Shows both composing text and the system candidate window inside the headset.
 - Uses a head-locked SteamVR overlay that stays below your main view.
-- Uses a three-handle overlay pool so recovery presents the new layer before retiring the oldest one.
+- Uses a true triple-buffer ring: new pixels are written only to an occluded back layer before its sort order is promoted.
+- Keeps the last top layer intact through transient failures and hands over stuck pools only after the replacement is visible.
 - Sends locally through VRChat's official OSC Chatbox endpoint.
 - No account, telemetry, or cloud service.
 
@@ -34,6 +35,8 @@ EnterVRIME is a lightweight Windows companion for VRChat PCVR. Press `Enter` on 
 3. Enable OSC in VRChat's quick menu.
 4. Download `EnterVRIME-*-win-x64.zip` from [Releases](../../releases), extract it, and launch `EnterVRIME.exe`.
 5. Press `Enter` to type, `Shift + Enter` for a newline, and `Esc` to cancel.
+
+> **OSC must be enabled inside VRChat before sending: Quick Menu → OSC → Enable.** Opening `OSC Debug` also enables it and makes the listener easy to verify.
 
 VRChat currently limits chatbox input to 144 characters and 9 lines.
 

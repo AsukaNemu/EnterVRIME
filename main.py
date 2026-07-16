@@ -45,7 +45,9 @@ def main() -> int:
             app.root.after(800, app.activate_input)
             app.root.after(4500, app.overlay.force_standby_promotion)
             app.root.after(8500, app.overlay.force_standby_promotion)
-            app.root.after(16000, app.quit)
+            app.root.after(10500, app.overlay.force_transient_failures)
+            app.root.after(10600, app.overlay.force_standby_promotion)
+            app.root.after(18000, app.quit)
         if "--runtime-smoke-test" in sys.argv:
             app.root.after(2500, app.quit)
         app.run()

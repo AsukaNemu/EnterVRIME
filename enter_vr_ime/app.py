@@ -334,8 +334,8 @@ class VRChatImeApp:
         window = tk.Toplevel(self.root)
         self.control_window = window
         window.title("EnterVRIME")
-        window.geometry("660x570")
-        window.minsize(660, 570)
+        window.geometry("660x640")
+        window.minsize(660, 640)
         window.configure(bg="#f5f7fb")
         window.protocol("WM_DELETE_WINDOW", window.withdraw)
 
@@ -363,10 +363,27 @@ class VRChatImeApp:
             font=("Microsoft YaHei UI", 10),
         ).pack(anchor="w", pady=(8, 0))
 
+        tk.Label(
+            body,
+            text=(
+                "开始前必须在 VRChat 内开启 OSC\n"
+                "路径：快捷菜单 → OSC → 开启（或打开 OSC Debug）"
+            ),
+            justify="left",
+            anchor="w",
+            bg="#fff4e5",
+            fg="#b45309",
+            bd=1,
+            relief="solid",
+            padx=14,
+            pady=10,
+            font=("Microsoft YaHei UI", 11, "bold"),
+        ).pack(fill="x", pady=(14, 0))
+
         instructions = (
             "1. 用 Virtual Desktop 连接 Quest 3，并启动 SteamVR。\n"
             "2. 从 SteamVR 启动 VRChat，不要使用 VDXR 直连。\n"
-            "3. 在 VRChat 快捷菜单中打开 OSC。\n"
+            "3. 在 VRChat 快捷菜单中确认 OSC 已开启。\n"
             "4. 戴上头显后按回车输入，再按回车发送。"
         )
         ttk.Label(
