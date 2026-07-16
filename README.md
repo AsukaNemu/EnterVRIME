@@ -49,7 +49,7 @@ EnterVRIME 保留了中文互联网用户已经熟悉的交互：
 - **一键进入、一键发送**：仅当 VRChat 位于前台时，回车才会唤出输入；确认候选后再次回车发送。
 - **沉浸式显示**：面板固定在视野下方，不遮挡主要游戏画面。
 - **本地优先**：文本只通过本机 UDP 发往 VRChat OSC，不经过云端服务器。
-- **开箱即用**：Release 提供免安装 Windows 便携包。
+- **开箱即用**：Release 只提供一个免管理员的一键安装包，不让普通用户选择版本。
 
 ## 快速开始
 
@@ -69,8 +69,6 @@ EnterVRIME 保留了中文互联网用户已经熟悉的交互：
 > 当前预览版尚未使用商业代码签名证书。若 Windows SmartScreen 提示未知发布者，请先确认文件来自本仓库的 Releases 页面，再选择“仍要运行”。
 
 之后不必考虑启动顺序：EnterVRIME 可以早于 Virtual Desktop、SteamVR 和 VRChat 启动，会一直等待并自动连接。重复双击快捷方式只会唤回已有窗口，不会运行第二套悬浮层。
-
-需要免安装版本时，可下载 `EnterVRIME-*-win-x64.zip`，完整解压后双击其中的 `EnterVRIME.exe`。
 
 状态窗口显示“SteamVR 已连接”后，可将它隐藏到系统托盘。
 
@@ -106,7 +104,7 @@ flowchart LR
 - 日志目录：`%LOCALAPPDATA%\EnterVRIME\logs`；
 - 诊断 ZIP：包含运行环境、SteamVR/热键/捕获/OSC 状态和最近日志；
 - 隐私保护：不记录聊天正文、拼音组合内容或候选词；导出时会隐藏用户目录和 Windows 用户名；
-- 启动即退出时：使用 Release 中的 `EnterVRIME-Debug-*-win-x64.zip`，控制台会保留更多现场信息。
+- 启动即退出时：提交 `%LOCALAPPDATA%\EnterVRIME\logs` 中最新的日志；维护者会在确有需要时单独提供 Debug 版。
 
 报错时请让测试者提供屏幕上的错误编号和诊断 ZIP。错误编号按区域分组：`E1xx` 启动/配置、`E2xx` 热键、`E3xx` SteamVR/悬浮层、`E4xx` 画面捕获、`E5xx` OSC、`E9xx` 未处理异常或崩溃。
 
@@ -183,7 +181,7 @@ python -m venv .venv
 .\build.cmd
 ```
 
-打包结果包括 `dist\EnterVRIME-Setup-v0.1.6-alpha.1-win-x64.exe`、便携 ZIP 和 Debug ZIP。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
+公开 Release 只上传 `dist\EnterVRIME-Setup-v0.1.6-alpha.1-win-x64.exe` 和对应校验文件。构建流程仍会在本地生成便携 ZIP 与 Debug ZIP，供维护者内部排错，不作为普通用户下载项。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
 
 欢迎阅读 [贡献指南](CONTRIBUTING.md)，或提交 [Bug](../../issues/new?template=bug_report.yml) 与 [功能建议](../../issues/new?template=feature_request.yml)。
 

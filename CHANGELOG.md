@@ -15,7 +15,7 @@ All notable changes to EnterVRIME are documented here.
 
 ### Changed
 
-- Recommend the installer as the default download while retaining portable and Debug ZIP packages.
+- Keep the public release focused on one installer; portable and Debug ZIPs remain local maintainer artifacts for exceptional troubleshooting.
 - Allow EnterVRIME to start before Virtual Desktop, SteamVR, or VRChat and remain waiting for them automatically.
 
 ## [0.1.5-alpha.1] - 2026-07-17

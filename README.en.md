@@ -40,7 +40,7 @@ EnterVRIME is a lightweight Windows companion for VRChat PCVR. Press `Enter` on 
 
 > Preview binaries are not code-signed yet. If Windows SmartScreen reports an unknown publisher, first verify that the file came from this repository's Releases page, then choose “Run anyway.”
 
-EnterVRIME can start before Virtual Desktop, SteamVR, or VRChat and will wait for them automatically. Opening the shortcut again restores the existing window instead of creating duplicate overlays. A portable ZIP remains available for users who do not want installation.
+EnterVRIME can start before Virtual Desktop, SteamVR, or VRChat and will wait for them automatically. Opening the shortcut again restores the existing window instead of creating duplicate overlays. The public release intentionally offers one installer so ordinary users do not have to choose between builds.
 
 VRChat currently limits chatbox input to 144 characters and 9 lines.
 
@@ -54,7 +54,7 @@ See [Architecture](docs/ARCHITECTURE.md) for details.
 
 Every run creates a local session log under `%LOCALAPPDATA%\EnterVRIME\logs`. The control window and tray menu can export a diagnostic ZIP containing environment details, component status, error codes, stack traces, and recent logs.
 
-Chat text, IME composition, and candidate words are never logged. Exported archives also redact the Windows username and user-profile paths. If the app exits before an archive can be exported, use the console-enabled `EnterVRIME-Debug-*-win-x64.zip` package and attach the latest log files to your issue.
+Chat text, IME composition, and candidate words are never logged. Exported archives also redact the Windows username and user-profile paths. If the app exits before an archive can be exported, attach the latest files from `%LOCALAPPDATA%\EnterVRIME\logs`; maintainers can provide a console-enabled Debug build privately when it is genuinely needed.
 
 Error-code groups are `E1xx` startup/configuration, `E2xx` hotkey, `E3xx` SteamVR/overlay, `E4xx` capture, `E5xx` OSC, and `E9xx` unhandled exceptions or crashes.
 

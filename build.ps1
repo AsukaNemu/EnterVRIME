@@ -61,7 +61,7 @@ if ($LASTEXITCODE -ne 0) {
   throw "Inno Setup failed with exit code $LASTEXITCODE"
 }
 
-$checksumLines = @($installerPackage, $normalPackage, $debugPackage) | ForEach-Object {
+$checksumLines = @($installerPackage) | ForEach-Object {
   $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $_).Hash.ToLowerInvariant()
   "$hash  $(Split-Path -Leaf $_)"
 }
