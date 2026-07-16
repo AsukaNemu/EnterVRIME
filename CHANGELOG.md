@@ -2,6 +2,22 @@
 
 All notable changes to EnterVRIME are documented here.
 
+## [0.1.6-alpha.1] - 2026-07-17
+
+### Added
+
+- A one-click, per-user Windows installer that requires no administrator privileges.
+- Automatic launch after installation, desktop and Start Menu shortcuts, and startup-at-login by default.
+- Automatic replacement and relaunch of a running copy during one-click upgrades.
+- An in-app checkbox for enabling or disabling startup-at-login.
+- A Windows single-instance mutex that prevents duplicate overlay and hotkey processes.
+- Duplicate launches restore the existing control window instead of starting another instance.
+
+### Changed
+
+- Recommend the installer as the default download while retaining portable and Debug ZIP packages.
+- Allow EnterVRIME to start before Virtual Desktop, SteamVR, or VRChat and remain waiting for them automatically.
+
 ## [0.1.5-alpha.1] - 2026-07-17
 
 ### Fixed

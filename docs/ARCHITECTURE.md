@@ -22,6 +22,8 @@ EnterVRIME is intentionally small. It coordinates four existing systems instead 
 | `tray.py` | Windows notification-area controls |
 | `diagnostics.py` | Session logs, exception hooks, privacy filtering, and ZIP export |
 | `windows.py` | Foreground-window ownership checks for the VRChat-only hotkey gate |
+| `single_instance.py` | Windows mutex and duplicate-launch window restoration |
+| `startup.py` | Per-user startup-at-login setting through the Windows Run key |
 
 ## Design choices
 
@@ -44,3 +46,7 @@ Before sending to a local target, EnterVRIME checks the Windows UDP owner table 
 ## Privacy boundary
 
 No input text, IME composition, or candidate words are persisted. Local diagnostics retain component state, error codes, and stack traces; exported archives redact user-profile paths and usernames. No telemetry or remote API is used. The default network destination is loopback (`127.0.0.1:9000`).
+
+## Distribution lifecycle
+
+The recommended installer writes only to the current user's `%LOCALAPPDATA%\Programs\EnterVRIME`, so elevation is not required. It creates shortcuts, registers the packaged executable in the current user's startup Run key, and launches the app after installation. During an upgrade it stops the old process before replacing files, then launches the new copy. A named per-session mutex prevents duplicate hotkey and overlay processes. The app may start before the VR runtime and keeps polling until Virtual Desktop and SteamVR become available.

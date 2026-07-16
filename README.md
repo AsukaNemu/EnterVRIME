@@ -64,7 +64,13 @@ EnterVRIME 保留了中文互联网用户已经熟悉的交互：
 
 ### 2. 下载并启动
 
-从 [Releases](../../releases) 下载最新的 `EnterVRIME-*-win-x64.zip`，解压后双击其中的 `EnterVRIME.exe`。首次运行若 Windows SmartScreen 提示未知发布者，请检查下载来源后选择“仍要运行”。当前预览版尚未使用商业代码签名证书。
+从 [Releases](../../releases) 下载最新的 `EnterVRIME-Setup-*-win-x64.exe`，双击一次即可，无需选择目录或点击“下一步”。安装包不需要管理员权限，会自动完成安装、创建桌面与开始菜单快捷方式、设置随 Windows 登录启动，并立即打开 EnterVRIME。
+
+> 当前预览版尚未使用商业代码签名证书。若 Windows SmartScreen 提示未知发布者，请先确认文件来自本仓库的 Releases 页面，再选择“仍要运行”。
+
+之后不必考虑启动顺序：EnterVRIME 可以早于 Virtual Desktop、SteamVR 和 VRChat 启动，会一直等待并自动连接。重复双击快捷方式只会唤回已有窗口，不会运行第二套悬浮层。
+
+需要免安装版本时，可下载 `EnterVRIME-*-win-x64.zip`，完整解压后双击其中的 `EnterVRIME.exe`。
 
 状态窗口显示“SteamVR 已连接”后，可将它隐藏到系统托盘。
 
@@ -177,7 +183,7 @@ python -m venv .venv
 .\build.cmd
 ```
 
-打包结果位于 `dist\EnterVRIME-v0.1.5-alpha.1-win-x64.zip` 和 `dist\EnterVRIME-Debug-v0.1.5-alpha.1-win-x64.zip`。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
+打包结果包括 `dist\EnterVRIME-Setup-v0.1.6-alpha.1-win-x64.exe`、便携 ZIP 和 Debug ZIP。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
 
 欢迎阅读 [贡献指南](CONTRIBUTING.md)，或提交 [Bug](../../issues/new?template=bug_report.yml) 与 [功能建议](../../issues/new?template=feature_request.yml)。
 

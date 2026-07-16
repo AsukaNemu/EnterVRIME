@@ -15,6 +15,7 @@ from .diagnostics import DiagnosticManager
 from .hotkey import EnterHotkey
 from .osc import VRChatOscClient
 from .overlay import OverlayPosition, SteamVROverlay
+from .startup import is_startup_enabled, set_startup_enabled
 from .tray import TrayIcon
 from .windows import foreground_executable_name, is_vrchat_executable
 
@@ -52,6 +53,7 @@ class VRChatImeApp:
         self._osc_receiver_pid: int | None = None
         self.control_window: tk.Toplevel | None = None
         self.control_status: tk.StringVar | None = None
+        self.start_with_windows = tk.BooleanVar(value=is_startup_enabled())
         self.counter = tk.StringVar(value=f"0 / {self.config.max_characters}")
         self.message = tk.StringVar(value="输入完成后按回车发送")
 
@@ -334,8 +336,8 @@ class VRChatImeApp:
         window = tk.Toplevel(self.root)
         self.control_window = window
         window.title("EnterVRIME")
-        window.geometry("660x640")
-        window.minsize(660, 640)
+        window.geometry("660x680")
+        window.minsize(660, 680)
         window.configure(bg="#f5f7fb")
         window.protocol("WM_DELETE_WINDOW", window.withdraw)
 
@@ -394,6 +396,13 @@ class VRChatImeApp:
             wraplength=580,
         ).pack(anchor="w", pady=20)
 
+        ttk.Checkbutton(
+            body,
+            text="随 Windows 登录自动启动（安装版默认开启，推荐保持开启）",
+            variable=self.start_with_windows,
+            command=self._toggle_startup,
+        ).pack(anchor="w", pady=(0, 14))
+
         diagnostics_row = ttk.LabelFrame(body, text="测试与诊断", padding=12)
         diagnostics_row.pack(fill="x", pady=(0, 18))
         ttk.Button(diagnostics_row, text="导出诊断包", command=self.export_diagnostics).pack(side="left")
@@ -433,6 +442,21 @@ class VRChatImeApp:
             return
         messagebox.showinfo("EnterVRIME", f"诊断包已导出：\n{result}", parent=parent)
 
+    def _toggle_startup(self) -> None:
+        enabled = self.start_with_windows.get()
+        try:
+            set_startup_enabled(enabled)
+        except Exception as exc:
+            self.start_with_windows.set(not enabled)
+            self._record_error("E126", "startup_setting_failed", exc)
+            messagebox.showerror(
+                "EnterVRIME",
+                "[E126] 无法修改开机启动设置。",
+                parent=self.control_window,
+            )
+            return
+        self.logger.info("E127 startup_setting_changed enabled=%s", enabled)
+
     def open_logs_folder(self) -> None:
         try:
             self.diagnostics.open_logs_folder()
@@ -453,6 +477,7 @@ class VRChatImeApp:
             "overlay": self.overlay.state,
             "hotkey_registered": self.hotkey.registered,
             "hotkey_error": self.hotkey.error or "none",
+            "startup_at_login": self.start_with_windows.get(),
             "osc_receiver": self._osc_receiver_label(),
             "osc_receiver_pid": self._osc_receiver_pid or "none",
             "input_active": self.active,
@@ -480,8 +505,10 @@ class VRChatImeApp:
             else:
                 hotkey_state = "回车监听：仅在 VRChat 位于前台时启用"
             error_state = f"\n最近错误：{self.last_error_code}" if self.last_error_code else ""
+            startup_state = "已开启" if self.start_with_windows.get() else "未开启"
             self.control_status.set(
-                f"{self.overlay.state}\n{hotkey_state}\n{self._osc_receiver_label()}{error_state}"
+                f"{self.overlay.state}\n{hotkey_state}\n{self._osc_receiver_label()}"
+                f"\n开机自动启动：{startup_state}{error_state}"
             )
         if self.root.winfo_exists():
             self.root.after(1000, self._refresh_control_status)

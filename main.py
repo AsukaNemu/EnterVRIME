@@ -5,6 +5,7 @@ import sys
 
 from enter_vr_ime.app import VRChatImeApp
 from enter_vr_ime.diagnostics import DiagnosticManager
+from enter_vr_ime.single_instance import SingleInstanceMutex, show_existing_instance
 
 
 def enable_per_monitor_dpi_awareness() -> None:
@@ -20,12 +21,16 @@ def enable_per_monitor_dpi_awareness() -> None:
             pass
 
 
-def show_fatal_error(log_path: str) -> None:
-    message = f"EnterVRIME 遇到未处理错误。\n\n错误编号：E900\n日志：{log_path}"
+def show_error(code: str, detail: str) -> None:
+    message = f"EnterVRIME 无法继续运行。\n\n错误编号：{code}\n{detail}"
     try:
         ctypes.windll.user32.MessageBoxW(None, message, "EnterVRIME", 0x10)
     except (AttributeError, OSError):
         print(message)
+
+
+def show_fatal_error(log_path: str) -> None:
+    show_error("E900", f"请把下面的日志路径发给开发者：\n{log_path}")
 
 
 def main() -> int:
@@ -34,31 +39,43 @@ def main() -> int:
         return 1
 
     enable_per_monitor_dpi_awareness()
-    diagnostics = DiagnosticManager()
-    app: VRChatImeApp | None = None
+    instance = SingleInstanceMutex()
     try:
-        app = VRChatImeApp(diagnostics)
-        if "--smoke-test" in sys.argv:
-            app.close_for_smoke_test()
+        if not instance.acquire():
+            show_existing_instance()
             return 0
-        if "--overlay-smoke-test" in sys.argv:
-            app.root.after(800, app.activate_input)
-            app.root.after(4500, app.overlay.force_standby_promotion)
-            app.root.after(8500, app.overlay.force_standby_promotion)
-            app.root.after(10500, app.overlay.force_transient_failures)
-            app.root.after(10600, app.overlay.force_standby_promotion)
-            app.root.after(18000, app.quit)
-        if "--runtime-smoke-test" in sys.argv:
-            app.root.after(2500, app.quit)
-        app.run()
-        return 0
-    except Exception:
-        diagnostics.logger.critical("E900 application_unhandled", exc_info=True)
-        diagnostics.flush()
-        show_fatal_error(str(diagnostics.session_log))
+    except OSError as exc:
+        show_error("E101", f"无法完成启动检查：\n{exc}")
         return 1
+
+    try:
+        diagnostics = DiagnosticManager()
+        app: VRChatImeApp | None = None
+        try:
+            app = VRChatImeApp(diagnostics)
+            if "--smoke-test" in sys.argv:
+                app.close_for_smoke_test()
+                return 0
+            if "--overlay-smoke-test" in sys.argv:
+                app.root.after(800, app.activate_input)
+                app.root.after(4500, app.overlay.force_standby_promotion)
+                app.root.after(8500, app.overlay.force_standby_promotion)
+                app.root.after(10500, app.overlay.force_transient_failures)
+                app.root.after(10600, app.overlay.force_standby_promotion)
+                app.root.after(18000, app.quit)
+            if "--runtime-smoke-test" in sys.argv:
+                app.root.after(2500, app.quit)
+            app.run()
+            return 0
+        except Exception:
+            diagnostics.logger.critical("E900 application_unhandled", exc_info=True)
+            diagnostics.flush()
+            show_fatal_error(str(diagnostics.session_log))
+            return 1
+        finally:
+            diagnostics.shutdown()
     finally:
-        diagnostics.shutdown()
+        instance.close()
 
 
 if __name__ == "__main__":
