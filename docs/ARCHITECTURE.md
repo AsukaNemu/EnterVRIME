@@ -33,7 +33,7 @@ Users keep their existing IME, learned vocabulary, cloud settings, and muscle me
 
 OpenVR overlays are compositor-supported and do not modify or inject code into VRChat. This reduces maintenance and keeps the app compatible with VRChat updates. The trade-off is that direct VDXR currently needs a separate implementation.
 
-Raw texture submissions are rate-limited, and a transient `RequestFailed` response is retried in place so the last valid frame stays visible. The overlay is rebuilt only after repeated failures or a non-transient OpenVR error.
+Raw texture submissions are rate-limited, and a transient `RequestFailed` response is retried in place so the last valid frame stays visible. Recovery uses a pool of three preconfigured overlay handles: the replacement texture is uploaded to a hidden standby handle, assigned a higher sort order, shown, and kept over the old layer for two compositor frames. Only then is the oldest visible handle hidden and recycled. The entire OpenVR session is rebuilt only when the standby pool repeatedly fails.
 
 ### Local OSC instead of simulated keyboard input
 

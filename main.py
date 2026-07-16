@@ -43,6 +43,8 @@ def main() -> int:
             return 0
         if "--overlay-smoke-test" in sys.argv:
             app.root.after(800, app.activate_input)
+            app.root.after(4500, app.overlay.force_standby_promotion)
+            app.root.after(8500, app.overlay.force_standby_promotion)
             app.root.after(16000, app.quit)
         if "--runtime-smoke-test" in sys.argv:
             app.root.after(2500, app.quit)

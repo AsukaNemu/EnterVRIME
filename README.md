@@ -44,6 +44,7 @@ EnterVRIME 保留了中文互联网用户已经熟悉的交互：
 
 - **不改变输入习惯**：复用 Windows 原生中文输入法和个人词频。
 - **候选词真正可见**：捕获输入区域与系统候选窗，显示为头显内悬浮层。
+- **切换不留空白帧**：三层悬浮池先显示新层、等待 SteamVR 完成合成，再回收最旧层。
 - **一键进入、一键发送**：仅当 VRChat 位于前台时，回车才会唤出输入；确认候选后再次回车发送。
 - **沉浸式显示**：面板固定在视野下方，不遮挡主要游戏画面。
 - **本地优先**：文本只通过本机 UDP 发往 VRChat OSC，不经过云端服务器。
@@ -173,7 +174,7 @@ python -m venv .venv
 .\build.cmd
 ```
 
-打包结果位于 `dist\EnterVRIME-v0.1.3-alpha.1-win-x64.zip` 和 `dist\EnterVRIME-Debug-v0.1.3-alpha.1-win-x64.zip`。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
+打包结果位于 `dist\EnterVRIME-v0.1.4-alpha.1-win-x64.zip` 和 `dist\EnterVRIME-Debug-v0.1.4-alpha.1-win-x64.zip`。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
 
 欢迎阅读 [贡献指南](CONTRIBUTING.md)，或提交 [Bug](../../issues/new?template=bug_report.yml) 与 [功能建议](../../issues/new?template=feature_request.yml)。
 

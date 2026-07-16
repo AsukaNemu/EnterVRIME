@@ -2,6 +2,21 @@
 
 All notable changes to EnterVRIME are documented here.
 
+## [0.1.4-alpha.1] - 2026-07-17
+
+### Fixed
+
+- Replace destructive overlay rebuilds with a three-handle make-before-break pool.
+- Present a replacement overlay for two SteamVR compositor frames before hiding the oldest visible generation.
+- Assign explicit overlay sort orders so overlapping recovery layers do not fight for presentation.
+- Keep the last valid layer visible while a standby handle receives the replacement texture.
+
+### Changed
+
+- Recycle hidden overlay handles instead of destroying and recreating them during frame recovery.
+- Reconnect the entire OpenVR overlay session only after the standby pool repeatedly fails.
+- Exercise two real standby promotions during the SteamVR overlay smoke test.
+
 ## [0.1.3-alpha.1] - 2026-07-17
 
 ### Fixed
