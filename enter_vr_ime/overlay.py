@@ -3,9 +3,15 @@ from __future__ import annotations
 import ctypes
 import logging
 import threading
+import time
 from dataclasses import dataclass
 
 import openvr
+
+
+MAX_RAW_UPDATES_PER_SECOND = 10.0
+TRANSIENT_RETRY_LIMIT = 5
+TRANSIENT_RETRY_SECONDS = 0.18
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,6 +78,10 @@ class SteamVROverlay:
         overlay = None
         handle = None
         shown = False
+        pending_frame: tuple[bytes, int, int] | None = None
+        submitted_frame: tuple[bytes, int, int] | None = None
+        last_submit_at = 0.0
+        transient_failures = 0
 
         while not self._stop.is_set():
             if overlay is None or handle is None:
@@ -94,6 +104,9 @@ class SteamVROverlay:
                     )
                     self._configure(overlay, handle)
                     shown = False
+                    submitted_frame = None
+                    last_submit_at = 0.0
+                    transient_failures = 0
                     self._set_state("SteamVR 已连接")
                     self.logger.info("E302 overlay_connected")
                 except Exception as exc:  # OpenVR exposes several exception classes.
@@ -118,13 +131,38 @@ class SteamVROverlay:
                 self._latest_frame = None
                 visible = self._visible_requested
 
+            if frame is not None:
+                pending_frame = frame
+
+            if pending_frame == submitted_frame:
+                pending_frame = None
+
             try:
-                if frame is not None:
-                    rgba, width, height = frame
+                if pending_frame is not None:
+                    elapsed = time.monotonic() - last_submit_at
+                    minimum_interval = 1.0 / MAX_RAW_UPDATES_PER_SECOND
+                    if elapsed < minimum_interval:
+                        self._wake.wait(timeout=minimum_interval - elapsed)
+                        self._wake.clear()
+                        if self._stop.is_set():
+                            break
+
+                    rgba, width, height = pending_frame
                     buffer_type = ctypes.c_ubyte * len(rgba)
                     buffer = buffer_type.from_buffer_copy(rgba)
                     overlay.setOverlayRaw(handle, buffer, width, height, 4)
-                if visible and frame is not None and not shown:
+                    submitted_frame = pending_frame
+                    pending_frame = None
+                    last_submit_at = time.monotonic()
+                    if transient_failures:
+                        self.logger.info(
+                            "E306 overlay_frame_recovered retries=%d",
+                            transient_failures,
+                        )
+                        transient_failures = 0
+                        self._set_state("SteamVR 已连接")
+
+                if visible and submitted_frame is not None and not shown:
                     overlay.showOverlay(handle)
                     shown = True
                 elif not visible and shown:
@@ -132,11 +170,32 @@ class SteamVROverlay:
                     shown = False
             except Exception as exc:
                 friendly = self._friendly_error(exc)
+                is_transient = "RequestFailed" in friendly
+                if is_transient:
+                    transient_failures += 1
+                    if transient_failures < TRANSIENT_RETRY_LIMIT:
+                        if transient_failures == 1:
+                            self.logger.warning(
+                                "E304 overlay_frame_retry error=%s",
+                                friendly,
+                            )
+                        self._wake.wait(timeout=TRANSIENT_RETRY_SECONDS)
+                        self._wake.clear()
+                        continue
+
                 self._set_state(f"[E304] SteamVR 连接中断：{friendly}")
-                self.logger.error("E304 overlay_frame_failed error=%s", friendly, exc_info=True)
+                self.logger.error(
+                    "E307 overlay_reconnecting error=%s retries=%d",
+                    friendly,
+                    transient_failures,
+                    exc_info=True,
+                )
                 overlay = None
                 handle = None
                 shown = False
+                pending_frame = None
+                submitted_frame = None
+                transient_failures = 0
                 try:
                     openvr.shutdown()
                 except Exception:

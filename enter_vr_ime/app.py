@@ -47,6 +47,8 @@ class VRChatImeApp:
         self.last_error_code = ""
         self.last_error = ""
         self._capture_error_active = False
+        self._osc_receiver_available: bool | None = None
+        self._osc_receiver_pid: int | None = None
         self.control_window: tk.Toplevel | None = None
         self.control_status: tk.StringVar | None = None
         self.counter = tk.StringVar(value=f"0 / {self.config.max_characters}")
@@ -183,7 +185,13 @@ class VRChatImeApp:
         self.text.delete("1.0", "end")
         self.text.edit_modified(False)
         self.counter.set(f"0 / {self.config.max_characters}")
-        self._set_message("正在输入；中文候选词会显示在下方")
+        if self._update_osc_receiver_status() is False:
+            self._set_message(
+                "[E505] VRChat 未监听 OSC；请打开操作菜单 → OSC → Enabled",
+                error=True,
+            )
+        else:
+            self._set_message("正在输入；中文候选词会显示在下方")
 
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
@@ -217,6 +225,15 @@ class VRChatImeApp:
                 error=True,
             )
             self.logger.warning("E113 input_too_long characters=%d", len(text))
+            return
+        if self._update_osc_receiver_status() is False:
+            self.last_error_code = "E505"
+            self.last_error = "OscReceiverMissing"
+            self._set_message(
+                "[E505] VRChat 未监听 OSC；打开操作菜单 → OSC → Enabled 后再次回车",
+                error=True,
+            )
+            self.logger.warning("E505 osc_receiver_missing port=%d", self.config.osc_port)
             return
         try:
             self.osc.send_chatbox(text, self.config.notify_sound)
@@ -273,7 +290,13 @@ class VRChatImeApp:
         if length > self.config.max_characters:
             self._set_message("文字过长，计数回到限制内前无法发送", error=True)
         else:
-            self._set_message("正在输入；中文候选词会显示在下方")
+            if self._osc_receiver_available is False:
+                self._set_message(
+                    "[E505] VRChat 未监听 OSC；请打开操作菜单 → OSC → Enabled",
+                    error=True,
+                )
+            else:
+                self._set_message("正在输入；中文候选词会显示在下方")
 
     def _capture_frame(self) -> None:
         if not self.active:
@@ -412,6 +435,8 @@ class VRChatImeApp:
             "overlay": self.overlay.state,
             "hotkey_registered": self.hotkey.registered,
             "hotkey_error": self.hotkey.error or "none",
+            "osc_receiver": self._osc_receiver_label(),
+            "osc_receiver_pid": self._osc_receiver_pid or "none",
             "input_active": self.active,
             "last_error_code": self.last_error_code or "none",
             "last_error_type": self.last_error or "none",
@@ -426,12 +451,45 @@ class VRChatImeApp:
         }
 
     def _refresh_control_status(self) -> None:
+        self._update_osc_receiver_status()
         if self.control_status is not None:
             hotkey_state = "回车键已就绪" if self.hotkey.registered else (self.hotkey.error or "回车键未就绪")
             error_state = f"\n最近错误：{self.last_error_code}" if self.last_error_code else ""
-            self.control_status.set(f"{self.overlay.state}\n{hotkey_state}{error_state}")
+            self.control_status.set(
+                f"{self.overlay.state}\n{hotkey_state}\n{self._osc_receiver_label()}{error_state}"
+            )
         if self.root.winfo_exists():
-            self.root.after(500, self._refresh_control_status)
+            self.root.after(1000, self._refresh_control_status)
+
+    def _update_osc_receiver_status(self) -> bool | None:
+        status = self.osc.receiver_status()
+        previous = self._osc_receiver_available
+        self._osc_receiver_available = status.available
+        self._osc_receiver_pid = status.pid
+        if status.available != previous:
+            if status.available is True:
+                self.logger.info(
+                    "E506 osc_receiver_detected port=%d pid=%d",
+                    self.config.osc_port,
+                    status.pid or 0,
+                )
+                if self.last_error_code == "E505":
+                    self.last_error_code = ""
+                    self.last_error = ""
+                    if self.active:
+                        self._set_message("OSC 已连接；再次按回车即可发送")
+            elif status.available is False:
+                self.logger.warning("E505 osc_receiver_missing port=%d", self.config.osc_port)
+            else:
+                self.logger.info("E507 osc_receiver_unverifiable")
+        return status.available
+
+    def _osc_receiver_label(self) -> str:
+        if self._osc_receiver_available is True:
+            return f"OSC：VRChat 已监听 {self.config.osc_host}:{self.config.osc_port}"
+        if self._osc_receiver_available is False:
+            return "OSC：[E505] 未检测到监听，请在操作菜单 → OSC → Enabled"
+        return f"OSC：目标 {self.config.osc_host}:{self.config.osc_port}（远程或无法检测）"
 
     def _set_message(self, text: str, error: bool = False) -> None:
         self.message.set(text)

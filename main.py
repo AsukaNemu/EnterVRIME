@@ -41,6 +41,9 @@ def main() -> int:
         if "--smoke-test" in sys.argv:
             app.close_for_smoke_test()
             return 0
+        if "--overlay-smoke-test" in sys.argv:
+            app.root.after(800, app.activate_input)
+            app.root.after(16000, app.quit)
         if "--runtime-smoke-test" in sys.argv:
             app.root.after(2500, app.quit)
         app.run()

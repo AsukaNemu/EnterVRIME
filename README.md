@@ -100,6 +100,8 @@ flowchart LR
 
 报错时请让测试者提供屏幕上的错误编号和诊断 ZIP。错误编号按区域分组：`E1xx` 启动/配置、`E2xx` 热键、`E3xx` SteamVR/悬浮层、`E4xx` 画面捕获、`E5xx` OSC、`E9xx` 未处理异常或崩溃。
 
+状态窗口会直接检查 VRChat 是否真的监听 OSC 端口。出现 `E505` 时，请在 VRChat 操作菜单中把 `OSC → Enabled` 先关闭再打开；看到“OSC：VRChat 已监听”后，保留的文字即可再次按回车发送。
+
 ## 兼容性
 
 | 组件 | 当前状态 |
@@ -124,6 +126,8 @@ flowchart LR
 <summary><strong>能看到输入内容，但发送后 VRChat 没反应</strong></summary>
 
 请在 VRChat 快捷菜单中启用 OSC，并确认没有其他软件占用默认 UDP 端口 `9000`。
+
+如果状态窗口显示 `E505`，请进入 VRChat 操作菜单，把 `OSC → Enabled` 先关闭再打开。即使设置页看起来已经启用，也应重新切换一次，直到 EnterVRIME 显示“OSC：VRChat 已监听”。
 
 </details>
 
@@ -167,7 +171,7 @@ python -m venv .venv
 .\build.cmd
 ```
 
-打包结果位于 `dist\EnterVRIME-v0.1.1-alpha.1-win-x64.zip` 和 `dist\EnterVRIME-Debug-v0.1.1-alpha.1-win-x64.zip`。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
+打包结果位于 `dist\EnterVRIME-v0.1.2-alpha.1-win-x64.zip` 和 `dist\EnterVRIME-Debug-v0.1.2-alpha.1-win-x64.zip`。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
 
 欢迎阅读 [贡献指南](CONTRIBUTING.md)，或提交 [Bug](../../issues/new?template=bug_report.yml) 与 [功能建议](../../issues/new?template=feature_request.yml)。
 

@@ -15,7 +15,7 @@ class AppConfig:
     overlay_width_m: float = 1.15
     overlay_y_m: float = -0.34
     overlay_z_m: float = -1.0
-    capture_fps: int = 20
+    capture_fps: int = 10
     window_width_px: int = 1100
     window_height_px: int = 390
     max_characters: int = 144
@@ -41,7 +41,7 @@ def load_config(logger: logging.Logger | None = None) -> AppConfig:
                 logger.warning("E101 config_load_failed defaults_restored", exc_info=True)
 
     config.osc_port = max(1, min(65535, int(config.osc_port)))
-    config.capture_fps = max(5, min(30, int(config.capture_fps)))
+    config.capture_fps = max(5, min(10, int(config.capture_fps)))
     config.max_characters = max(1, min(144, int(config.max_characters)))
     try:
         save_config(config)

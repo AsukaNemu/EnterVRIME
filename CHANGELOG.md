@@ -2,6 +2,20 @@
 
 All notable changes to EnterVRIME are documented here.
 
+## [0.1.2-alpha.1] - 2026-07-17
+
+### Fixed
+
+- Stop recreating the SteamVR overlay after a single transient `OverlayError_RequestFailed` response.
+- Reduce raw texture updates to 10 FPS and skip unchanged frames to prevent rapid overlay flashing.
+- Detect whether local VRChat is actually listening on the configured OSC input port.
+- Keep unsent text open and show `E505` instead of reporting a false successful send when OSC is unavailable.
+
+### Added
+
+- Live OSC receiver status and listening-process diagnostics in the control window and diagnostic ZIP.
+- A real SteamVR overlay smoke-test mode for packaged-build validation.
+
 ## [0.1.1-alpha.1] - 2026-07-16
 
 ### Added

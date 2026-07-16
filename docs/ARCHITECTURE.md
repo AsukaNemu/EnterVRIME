@@ -7,7 +7,7 @@ EnterVRIME is intentionally small. It coordinates four existing systems instead 
 1. A thread-scoped Windows global hotkey listens for `Enter` while the app is idle.
 2. The hotkey is temporarily unregistered while a native Tk text widget owns keyboard focus.
 3. Windows IME handles composition, candidate ranking, and personal dictionaries as usual.
-4. The visible input region and candidate popup are captured at up to 20 FPS.
+4. The visible input region and candidate popup are captured at 10 FPS; unchanged frames are not resubmitted.
 5. RGBA frames are submitted to a head-relative SteamVR overlay through OpenVR.
 6. Confirmed UTF-8 text is encoded as an OSC message and sent to VRChat on UDP port `9000`.
 
@@ -32,9 +32,13 @@ Users keep their existing IME, learned vocabulary, cloud settings, and muscle me
 
 OpenVR overlays are compositor-supported and do not modify or inject code into VRChat. This reduces maintenance and keeps the app compatible with VRChat updates. The trade-off is that direct VDXR currently needs a separate implementation.
 
+Raw texture submissions are rate-limited, and a transient `RequestFailed` response is retried in place so the last valid frame stays visible. The overlay is rebuilt only after repeated failures or a non-transient OpenVR error.
+
 ### Local OSC instead of simulated keyboard input
 
 VRChat officially supports UTF-8 chatbox text through `/chatbox/input`. OSC avoids focus-sensitive keystroke injection and keeps the integration explicit.
+
+Before sending to a local target, EnterVRIME checks the Windows UDP owner table for a listener on the configured port. A missing listener produces `E505` and preserves the typed text instead of treating UDP transmission as delivery confirmation.
 
 ## Privacy boundary
 

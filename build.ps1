@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$version = 'v0.1.1-alpha.1'
+$version = 'v0.1.2-alpha.1'
 $normalPackage = "dist\EnterVRIME-$version-win-x64.zip"
 $debugPackage = "dist\EnterVRIME-Debug-$version-win-x64.zip"
 $checksumFile = "dist\SHA256SUMS-$version.txt"

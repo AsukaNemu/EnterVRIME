@@ -50,6 +50,8 @@ Chat text, IME composition, and candidate words are never logged. Exported archi
 
 Error-code groups are `E1xx` startup/configuration, `E2xx` hotkey, `E3xx` SteamVR/overlay, `E4xx` capture, `E5xx` OSC, and `E9xx` unhandled exceptions or crashes.
 
+The control window now verifies that local VRChat is actually listening for OSC. If it shows `E505`, toggle `Action Menu → OSC → Enabled` off and on, then retry when the status changes to “VRChat is listening.” Unsent text remains in the editor.
+
 ## Compatibility
 
 | Environment | Status |
