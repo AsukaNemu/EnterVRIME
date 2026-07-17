@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: VRChat OSC documentation
+    url: https://docs.vrchat.com/docs/osc-as-input-controller
+    about: Check the official OSC chatbox behavior before reporting an integration issue.

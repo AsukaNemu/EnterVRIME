@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest an improvement for VR text input
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Problem
+      description: What is difficult today, and for which VR setup?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed experience
+      description: Describe the ideal interaction from the user's point of view.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Alternatives
+      description: What workarounds have you tried?

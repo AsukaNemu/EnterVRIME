@@ -44,10 +44,12 @@ EnterVRIME 保留了中文互联网用户已经熟悉的交互：
 
 - **不改变输入习惯**：复用 Windows 原生中文输入法和个人词频。
 - **候选词真正可见**：捕获输入区域与系统候选窗，显示为头显内悬浮层。
-- **一键进入、一键发送**：全局回车唤出输入，确认候选后再次回车发送。
+- **真正三缓冲显示**：始终保留当前顶层，只在被遮住的后备层写入新画面，确认后再提升显示顺序。
+- **失败也不拆顶层**：SteamVR 暂时拒绝更新时保留上一帧；需要换池时也是新顶层出现后才回收旧层。
+- **一键进入、一键发送**：仅当 VRChat 位于前台时，回车才会唤出输入；确认候选后再次回车发送。
 - **沉浸式显示**：面板固定在视野下方，不遮挡主要游戏画面。
 - **本地优先**：文本只通过本机 UDP 发往 VRChat OSC，不经过云端服务器。
-- **开箱即用**：Release 提供免安装 Windows 便携包。
+- **开箱即用**：Release 只提供一个免管理员的一键安装包，不让普通用户选择版本。
 
 ## 快速开始
 
@@ -58,9 +60,15 @@ EnterVRIME 保留了中文互联网用户已经熟悉的交互：
 - Virtual Desktop 使用 SteamVR 运行 VRChat；
 - 在 VRChat 快捷菜单中启用 OSC。
 
+> **开始输入前必须在 VRChat 内开启 OSC：快捷菜单 → OSC → 开启。** 也可以打开 `OSC Debug` 页面完成启用与检查。
+
 ### 2. 下载并启动
 
-从 [Releases](../../releases) 下载最新的 `EnterVRIME-*-win-x64.zip`，解压后双击其中的 `EnterVRIME.exe`。首次运行若 Windows SmartScreen 提示未知发布者，请检查下载来源后选择“仍要运行”。当前预览版尚未使用商业代码签名证书。
+从 [Releases](../../releases) 下载最新的 `EnterVRIME-Setup-*-win-x64.exe`，双击一次即可，无需选择目录或点击“下一步”。安装包不需要管理员权限，会自动完成安装、创建桌面与开始菜单快捷方式，并立即打开 EnterVRIME。开机自动启动默认关闭，只有用户在控制窗口主动勾选后才会启用。
+
+> 当前预览版尚未使用商业代码签名证书。若 Windows SmartScreen 提示未知发布者，请先确认文件来自本仓库的 Releases 页面，再选择“仍要运行”。
+
+之后不必考虑启动顺序：EnterVRIME 可以早于 Virtual Desktop、SteamVR 和 VRChat 启动，会一直等待并自动连接。若用户主动开启了开机自启，登录 Windows 时 EnterVRIME 只会等待现有 SteamVR 进程，绝不会自行拉起 SteamVR。重复双击快捷方式只会唤回已有窗口，不会运行第二套悬浮层。
 
 状态窗口显示“SteamVR 已连接”后，可将它隐藏到系统托盘。
 
@@ -89,6 +97,21 @@ flowchart LR
 
 更详细的技术说明见 [架构文档](docs/ARCHITECTURE.md)。
 
+## 外部测试与诊断
+
+让朋友测试时，不需要靠截图猜问题。EnterVRIME 会为每次运行生成本地会话日志，并在状态窗口和系统托盘提供“导出诊断包”。
+
+- 日志目录：`%LOCALAPPDATA%\EnterVRIME\logs`；
+- 诊断 ZIP：包含运行环境、SteamVR/热键/捕获/OSC 状态和最近日志；
+- 隐私保护：不记录聊天正文、拼音组合内容或候选词；导出时会隐藏用户目录和 Windows 用户名；
+- 启动即退出时：提交 `%LOCALAPPDATA%\EnterVRIME\logs` 中最新的日志；维护者会在确有需要时单独提供 Debug 版。
+
+报错时请让测试者提供屏幕上的错误编号和诊断 ZIP。错误编号按区域分组：`E1xx` 启动/配置、`E2xx` 热键、`E3xx` SteamVR/悬浮层、`E4xx` 画面捕获、`E5xx` OSC、`E9xx` 未处理异常或崩溃。
+
+状态窗口会直接检查 VRChat 是否真的监听 OSC 端口。出现 `E505` 时，请打开 VRChat 的 `操作菜单 → OSC → OSC Debug`；看到“OSC：VRChat 已监听”后，保留的文字即可再次按回车发送。
+
+回车热键采用前台白名单：只有 `VRChat.exe` 是当前前台窗口时才注册。切换到浏览器、启动器或桌面后会立即注销，不会吞掉回车或抢走焦点。
+
 ## 兼容性
 
 | 组件 | 当前状态 |
@@ -113,6 +136,8 @@ flowchart LR
 <summary><strong>能看到输入内容，但发送后 VRChat 没反应</strong></summary>
 
 请在 VRChat 快捷菜单中启用 OSC，并确认没有其他软件占用默认 UDP 端口 `9000`。
+
+如果状态窗口显示 `E505`，请打开 VRChat 的 `操作菜单 → OSC → OSC Debug` 页面。打开该页面也会强制启用 OSC；等待 EnterVRIME 显示“OSC：VRChat 已监听”后再发送。
 
 </details>
 
@@ -156,13 +181,13 @@ python -m venv .venv
 .\build.cmd
 ```
 
-打包结果位于 `dist\EnterVRIME-v0.1.0-alpha.1-win-x64.zip`。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
+公开 Release 只上传 `dist\EnterVRIME-Setup-v0.1.7-alpha.1-win-x64.exe` 和对应校验文件。构建流程仍会在本地生成便携 ZIP 与 Debug ZIP，供维护者内部排错，不作为普通用户下载项。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
 
 欢迎阅读 [贡献指南](CONTRIBUTING.md)，或提交 [Bug](../../issues/new?template=bug_report.yml) 与 [功能建议](../../issues/new?template=feature_request.yml)。
 
 ## 隐私与安全
 
-EnterVRIME 不包含账号系统、遥测或云端服务。输入文本仅发送到配置中的 OSC 地址，默认是本机 `127.0.0.1:9000`。安全问题请参阅 [SECURITY.md](SECURITY.md)。
+EnterVRIME 不包含账号系统、遥测或云端服务。输入文本仅发送到配置中的 OSC 地址，默认是本机 `127.0.0.1:9000`。诊断日志只记录状态与错误，不保存输入内容。安全问题请参阅 [SECURITY.md](SECURITY.md)。
 
 ## License
 

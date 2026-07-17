@@ -1,0 +1,41 @@
+name: Bug report
+description: Report a reproducible EnterVRIME problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I am using Virtual Desktop with SteamVR, not direct VDXR.
+          required: true
+        - label: VRChat OSC is enabled.
+          required: true
+        - label: I searched existing issues.
+          required: true
+  - type: input
+    attributes:
+      label: Environment
+      description: Windows version, Quest model, Virtual Desktop runtime, SteamVR version, and IME.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Include exact steps, expected behavior, and actual behavior.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Error code
+      description: Enter the E### code shown in the app, or write "none".
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Diagnostic package
+      description: Drag the exported ZIP here. It excludes chat and candidate text and redacts user paths. If export was unavailable, attach the latest session/crash logs from %LOCALAPPDATA%\EnterVRIME\logs.
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Screenshots or other context without private chat text.
