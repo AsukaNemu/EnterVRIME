@@ -30,9 +30,15 @@ ERROR = "#fb7185"
 
 
 class VRChatImeApp:
-    def __init__(self, diagnostics: DiagnosticManager) -> None:
+    def __init__(
+        self,
+        diagnostics: DiagnosticManager,
+        *,
+        startup_launch: bool = False,
+    ) -> None:
         self.diagnostics = diagnostics
         self.logger = diagnostics.logger
+        self.startup_launch = startup_launch
         self.config: AppConfig = load_config(self.logger)
         self.logger.info("E103 config_ready values=%s", diagnostics.safe_config(self.config))
         self.events: queue.Queue[str] = queue.Queue()
@@ -72,6 +78,7 @@ class VRChatImeApp:
                 self.config.overlay_z_m,
             ),
             self.logger,
+            wait_for_running_runtime=startup_launch,
         )
         self.tray = TrayIcon(self.events, self.logger)
         self.logger.info(
@@ -398,7 +405,7 @@ class VRChatImeApp:
 
         ttk.Checkbutton(
             body,
-            text="随 Windows 登录自动启动（安装版默认开启，推荐保持开启）",
+            text="随 Windows 登录自动启动（默认关闭；不会自动打开 SteamVR）",
             variable=self.start_with_windows,
             command=self._toggle_startup,
         ).pack(anchor="w", pady=(0, 14))
@@ -505,7 +512,11 @@ class VRChatImeApp:
             else:
                 hotkey_state = "回车监听：仅在 VRChat 位于前台时启用"
             error_state = f"\n最近错误：{self.last_error_code}" if self.last_error_code else ""
-            startup_state = "已开启" if self.start_with_windows.get() else "未开启"
+            startup_state = (
+                "已开启（只等待，不会打开 SteamVR）"
+                if self.start_with_windows.get()
+                else "未开启"
+            )
             self.control_status.set(
                 f"{self.overlay.state}\n{hotkey_state}\n{self._osc_receiver_label()}"
                 f"\n开机自动启动：{startup_state}{error_state}"

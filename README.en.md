@@ -33,14 +33,14 @@ EnterVRIME is a lightweight Windows companion for VRChat PCVR. Press `Enter` on 
 1. Connect Quest 3 to Windows with Virtual Desktop.
 2. Use SteamVR as the runtime and launch VRChat from SteamVR, not direct VDXR.
 3. Enable OSC in VRChat's quick menu.
-4. Download `EnterVRIME-Setup-*-win-x64.exe` from [Releases](../../releases) and open it once. No directory or Next-button choices are required: it installs without administrator rights, creates shortcuts, enables startup-at-login, and launches EnterVRIME automatically.
+4. Download `EnterVRIME-Setup-*-win-x64.exe` from [Releases](../../releases) and open it once. No directory or Next-button choices are required: it installs without administrator rights, creates shortcuts, and launches EnterVRIME automatically. Startup-at-login stays off unless the user explicitly enables it in the control window.
 5. Press `Enter` to type, `Shift + Enter` for a newline, and `Esc` to cancel.
 
 > **OSC must be enabled inside VRChat before sending: Quick Menu → OSC → Enable.** Opening `OSC Debug` also enables it and makes the listener easy to verify.
 
 > Preview binaries are not code-signed yet. If Windows SmartScreen reports an unknown publisher, first verify that the file came from this repository's Releases page, then choose “Run anyway.”
 
-EnterVRIME can start before Virtual Desktop, SteamVR, or VRChat and will wait for them automatically. Opening the shortcut again restores the existing window instead of creating duplicate overlays. The public release intentionally offers one installer so ordinary users do not have to choose between builds.
+EnterVRIME can start before Virtual Desktop, SteamVR, or VRChat and will wait for them automatically. An opted-in Windows startup launch waits for an existing SteamVR process and never starts SteamVR itself. Opening the shortcut again restores the existing window instead of creating duplicate overlays. The public release intentionally offers one installer so ordinary users do not have to choose between builds.
 
 VRChat currently limits chatbox input to 144 characters and 9 lines.
 

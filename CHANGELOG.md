@@ -2,6 +2,14 @@
 
 All notable changes to EnterVRIME are documented here.
 
+## [0.1.7-alpha.1] - 2026-07-17
+
+### Changed
+
+- Leave startup-at-login disabled after a new installation; users can opt in from the control window.
+- Mark startup-at-login launches with `--startup` and wait for an already-running SteamVR server before calling OpenVR, so Windows login never launches SteamVR.
+- Reset the legacy v0.1.6 installer-created startup entry once during upgrade, while preserving explicit choices made on v0.1.7 and later.
+
 ## [0.1.6-alpha.1] - 2026-07-17
 
 ### Added

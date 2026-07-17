@@ -1,8 +1,8 @@
 #ifndef AppVersion
-  #define AppVersion "0.1.6-alpha.1"
+  #define AppVersion "0.1.7-alpha.1"
 #endif
 #ifndef AppNumericVersion
-  #define AppNumericVersion "0.1.6.1"
+  #define AppNumericVersion "0.1.7.1"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\dist\EnterVRIME"
@@ -54,9 +54,6 @@ Name: "{autodesktop}\EnterVRIME"; Filename: "{app}\EnterVRIME.exe"; WorkingDir: 
 Name: "{group}\EnterVRIME"; Filename: "{app}\EnterVRIME.exe"; WorkingDir: "{app}"
 Name: "{group}\卸载 EnterVRIME"; Filename: "{uninstallexe}"
 
-[Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "EnterVRIME"; ValueData: """{app}\EnterVRIME.exe"""; Flags: uninsdeletevalue
-
 [Run]
 Filename: "{app}\EnterVRIME.exe"; WorkingDir: "{app}"; Flags: nowait
 
@@ -64,6 +61,13 @@ Filename: "{app}\EnterVRIME.exe"; WorkingDir: "{app}"; Flags: nowait
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM EnterVRIME.exe"; Flags: runhidden waituntilterminated; RunOnceId: "StopEnterVRIME"
 
 [Code]
+const
+  StartupRunKey = 'Software\Microsoft\Windows\CurrentVersion\Run';
+  UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{CCB41C04-784C-4D5B-AF5B-0DA3C3FF42C8}_is1';
+
+var
+  ResetLegacyStartup: Boolean;
+
 procedure CurPageChanged(CurPageID: Integer);
 begin
   { Inno keeps the Ready page when every earlier page is hidden. Advance it
@@ -75,7 +79,12 @@ end;
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
+  InstalledVersion: String;
 begin
+  ResetLegacyStartup := False;
+  if RegQueryStringValue(HKCU, UninstallKey, 'DisplayVersion', InstalledVersion) then
+    ResetLegacyStartup := Pos('0.1.6', InstalledVersion) = 1;
+
   { EnterVRIME has no unsaved document state. Stop any old copy so an upgrade
     remains one-click and never pauses on Inno Setup's files-in-use page. }
   Exec(
@@ -87,4 +96,21 @@ begin
     ResultCode
   );
   Result := '';
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  { v0.1.6 enabled startup for every install. Reset that legacy default once;
+    later versions preserve the user's explicit checkbox choice. }
+  if (CurStep = ssInstall) and ResetLegacyStartup then
+  begin
+    RegDeleteValue(HKCU, StartupRunKey, 'EnterVRIME');
+    Log('Removed v0.1.6 default startup entry; startup is now opt-in.');
+  end;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+    RegDeleteValue(HKCU, StartupRunKey, 'EnterVRIME');
 end;

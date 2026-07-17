@@ -22,7 +22,7 @@ def set_startup_enabled(enabled: bool) -> None:
     if enabled:
         if not getattr(sys, "frozen", False):
             raise RuntimeError("开机启动只能在打包版中启用")
-        command = subprocess.list2cmdline([sys.executable])
+        command = subprocess.list2cmdline([sys.executable, "--startup"])
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
             winreg.SetValueEx(key, RUN_VALUE, 0, winreg.REG_SZ, command)
         return

@@ -9,6 +9,8 @@ from dataclasses import dataclass
 
 import openvr
 
+from .windows import is_process_running
+
 
 MAX_RAW_UPDATES_PER_SECOND = 10.0
 TRANSIENT_RETRY_SECONDS = 0.18
@@ -146,9 +148,16 @@ class _OverlaySwapChain:
 class SteamVROverlay:
     """Render the latest captured RGBA frame as a head-locked OpenVR overlay."""
 
-    def __init__(self, position: OverlayPosition, logger: logging.Logger) -> None:
+    def __init__(
+        self,
+        position: OverlayPosition,
+        logger: logging.Logger,
+        *,
+        wait_for_running_runtime: bool = False,
+    ) -> None:
         self.position = position
         self.logger = logger
+        self.wait_for_running_runtime = wait_for_running_runtime
         self._thread = threading.Thread(target=self._run, name="steamvr-overlay", daemon=True)
         self._wake = threading.Event()
         self._stop = threading.Event()
@@ -158,7 +167,11 @@ class SteamVROverlay:
         self._discard_submitted = False
         self._forced_submit_failures = 0
         self._visible_requested = False
-        self._state = "正在连接 SteamVR"
+        self._state = (
+            "等待用户启动 SteamVR（开机启动不会自动打开）"
+            if wait_for_running_runtime
+            else "正在连接 SteamVR"
+        )
 
     @property
     def state(self) -> str:
@@ -168,6 +181,8 @@ class SteamVROverlay:
     def start(self) -> None:
         self._thread.start()
         self.logger.info("E300 overlay_thread_started")
+        if self.wait_for_running_runtime:
+            self.logger.info("E305 startup_waiting_mode steamvr_autolaunch=False")
 
     def show(self) -> None:
         with self._lock:
@@ -224,6 +239,12 @@ class SteamVROverlay:
 
         while not self._stop.is_set():
             if overlay is None or swap_chain is None:
+                if self.wait_for_running_runtime and not is_process_running("vrserver.exe"):
+                    if self._set_state("等待用户启动 SteamVR（开机启动不会自动打开）"):
+                        self.logger.info("E305 startup_waiting_for_steamvr")
+                    self._wake.wait(timeout=3.0)
+                    self._wake.clear()
+                    continue
                 try:
                     hmd_present = openvr.isHmdPresent()
                 except Exception:

@@ -52,7 +52,9 @@ def main() -> int:
         diagnostics = DiagnosticManager()
         app: VRChatImeApp | None = None
         try:
-            app = VRChatImeApp(diagnostics)
+            startup_launch = "--startup" in sys.argv
+            diagnostics.logger.info("E106 startup_launch_mode enabled=%s", startup_launch)
+            app = VRChatImeApp(diagnostics, startup_launch=startup_launch)
             if "--smoke-test" in sys.argv:
                 app.close_for_smoke_test()
                 return 0

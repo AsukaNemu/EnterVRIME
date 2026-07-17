@@ -128,6 +128,31 @@ class OverlayRuntimeTests(unittest.TestCase):
             time.sleep(0.01)
         raise AssertionError("condition was not reached before timeout")
 
+    def test_startup_mode_waits_without_touching_openvr_until_steamvr_runs(self) -> None:
+        logger = self.logger("test.overlay.startup-wait")
+        service = SteamVROverlay(
+            OverlayPosition(1.0, -0.3, -1.0),
+            logger,
+            wait_for_running_runtime=True,
+        )
+
+        def runtime_missing(_executable_name: str) -> bool:
+            service._stop.set()
+            service._wake.set()
+            return False
+
+        with (
+            patch.object(overlay_module, "is_process_running", side_effect=runtime_missing),
+            patch.object(overlay_module.openvr, "isHmdPresent") as hmd_present,
+            patch.object(overlay_module.openvr, "init") as init_mock,
+            patch.object(overlay_module.openvr, "shutdown"),
+        ):
+            service._run()
+
+        hmd_present.assert_not_called()
+        init_mock.assert_not_called()
+        self.assertIn("不会自动打开", service.state)
+
     def test_request_failed_never_reconnects_or_removes_the_last_valid_layer(self) -> None:
         fake = FakeRuntimeOverlay()
         logger = self.logger("test.overlay.runtime")
