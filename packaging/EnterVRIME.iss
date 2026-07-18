@@ -1,8 +1,8 @@
 #ifndef AppVersion
-  #define AppVersion "0.1.7-alpha.1"
+  #define AppVersion "0.1.8-alpha.1"
 #endif
 #ifndef AppNumericVersion
-  #define AppNumericVersion "0.1.7.1"
+  #define AppNumericVersion "0.1.8.1"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\dist\EnterVRIME"

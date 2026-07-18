@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'Stop'
 
-$version = 'v0.1.7-alpha.1'
-$appVersion = '0.1.7-alpha.1'
-$numericVersion = '0.1.7.1'
+$version = 'v0.1.8-alpha.1'
+$appVersion = '0.1.8-alpha.1'
+$numericVersion = '0.1.8.1'
 $stageRoot = "dist\stage-$version"
 $normalStage = Join-Path $stageRoot 'EnterVRIME'
 $debugStage = Join-Path $stageRoot 'EnterVRIME-Debug'

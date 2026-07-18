@@ -29,7 +29,7 @@ class OverlayPosition:
 
 
 class _OverlaySwapChain:
-    """Triple-buffer frames behind an opaque top overlay without visible teardown."""
+    """Upload only to a hidden layer, then retire the oldest visible layer."""
 
     def __init__(self, overlay: openvr.IVROverlay, handles: list[int]) -> None:
         if len(handles) != OVERLAY_POOL_SIZE:
@@ -68,22 +68,20 @@ class _OverlaySwapChain:
             raise first_error
 
     def promote(self, submit: Callable[[int], None], visible: bool) -> int:
+        retirement_error = self._retire_excess_visible()
         hidden_candidates = [
             index
             for index in range(len(self.handles))
             if index != self.active_index and index not in self.visible_indices
         ]
-        occluded_candidates = [
-            index for index in self.visible_indices if index != self.active_index
-        ]
-        candidates = [*hidden_candidates, *occluded_candidates]
-        if not candidates:
+        if not hidden_candidates:
+            if retirement_error is not None:
+                raise retirement_error
             raise RuntimeError("no standby overlay is available")
 
         last_error: Exception | None = None
-        for candidate in candidates:
+        for candidate in hidden_candidates:
             handle = self.handles[candidate]
-            was_visible = candidate in self.visible_indices
             shown = False
             committed = False
             try:
@@ -92,19 +90,18 @@ class _OverlaySwapChain:
                     self._wait_for_frame_sync()
                     next_generation = self.generation + 1
                     self.overlay.setOverlaySortOrder(handle, next_generation)
-                    if not was_visible:
-                        self.overlay.showOverlay(handle)
-                        shown = True
-
-                    next_visible = [
-                        index for index in self.visible_indices if index != candidate
-                    ]
-                    next_visible.append(candidate)
-                    self.visible_indices = next_visible
+                    self.overlay.showOverlay(handle)
+                    shown = True
+                    self.visible_indices.append(candidate)
                     self.generation = next_generation
                     self.active_index = candidate
                     committed = True
                     self._wait_for_frame_sync()
+                    # Keep the previous top layer as a fallback, but retire the
+                    # oldest generation only after the new one has survived a
+                    # compositor frame. A failed hide remains tracked and is
+                    # retried before the next upload.
+                    self._retire_excess_visible()
                 else:
                     self.set_visible(False)
                     self.active_index = candidate
@@ -123,6 +120,20 @@ class _OverlaySwapChain:
         if last_error is not None:
             raise last_error
         raise RuntimeError("standby overlay promotion failed")
+
+    def _retire_excess_visible(self) -> Exception | None:
+        first_error: Exception | None = None
+        while len(self.visible_indices) > 2:
+            oldest = next(
+                index for index in self.visible_indices if index != self.active_index
+            )
+            try:
+                self.overlay.hideOverlay(self.handles[oldest])
+            except Exception as exc:
+                first_error = first_error or exc
+                break
+            self.visible_indices.remove(oldest)
+        return first_error
 
     def _wait_for_frame_sync(self) -> None:
         try:
@@ -318,13 +329,19 @@ class SteamVROverlay:
                             break
 
                     if visible and submitted_frame is not None:
-                        swap_chain.promote(
+                        promoted_handle = swap_chain.promote(
                             lambda standby_handle: self._submit_frame(
                                 overlay,
                                 standby_handle,
                                 pending_frame,
                             ),
                             True,
+                        )
+                        self.logger.debug(
+                            "E314 overlay_frame_promoted handle=%d generation=%d visible_layers=%d",
+                            promoted_handle,
+                            swap_chain.generation,
+                            len(swap_chain.visible_indices),
                         )
                     else:
                         self._submit_frame(overlay, swap_chain.active_handle, pending_frame)
