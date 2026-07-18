@@ -181,7 +181,7 @@ python -m venv .venv
 .\build.cmd
 ```
 
-公开 Release 只上传 `dist\EnterVRIME-Setup-v0.1.7-alpha.1-win-x64.exe` 和对应校验文件。构建流程仍会在本地生成便携 ZIP 与 Debug ZIP，供维护者内部排错，不作为普通用户下载项。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
+公开 Release 只上传 `dist\EnterVRIME-Setup-v0.1.8-alpha.1-win-x64.exe` 和对应校验文件。构建流程仍会在本地生成便携 ZIP 与 Debug ZIP，供维护者内部排错，不作为普通用户下载项。本地配置保存在 `%LOCALAPPDATA%\EnterVRIME\config.json`。
 
 欢迎阅读 [贡献指南](CONTRIBUTING.md)，或提交 [Bug](../../issues/new?template=bug_report.yml) 与 [功能建议](../../issues/new?template=feature_request.yml)。
 

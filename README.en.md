@@ -19,7 +19,7 @@ EnterVRIME is a lightweight Windows companion for VRChat PCVR. Press `Enter` on 
 - Keeps Microsoft Pinyin, Sogou, and other native Windows IME behavior.
 - Shows both composing text and the system candidate window inside the headset.
 - Uses a head-locked SteamVR overlay that stays below your main view.
-- Uses a true triple-buffer ring: new pixels are written only to an occluded back layer before its sort order is promoted.
+- Uses a true triple-buffer ring: new pixels are written only to the fully hidden third layer, which is shown before the oldest layer is retired.
 - Keeps the last top layer intact through transient failures and hands over stuck pools only after the replacement is visible.
 - Sends locally through VRChat's official OSC Chatbox endpoint.
 - No account, telemetry, or cloud service.

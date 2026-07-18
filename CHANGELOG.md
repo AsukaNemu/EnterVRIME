@@ -2,6 +2,15 @@
 
 All notable changes to EnterVRIME are documented here.
 
+## [0.1.8-alpha.1] - 2026-07-18
+
+### Fixed
+
+- Keep at most two overlay generations visible and upload every new frame only to the fully hidden third handle.
+- Show and synchronize the replacement layer before hiding the oldest layer, matching a real make-before-break rotation without rewriting an occluded but still-visible texture.
+- Disable the desktop insertion-caret blink so an idle input panel remains pixel-stable and does not trigger periodic VR texture swaps.
+- Record each ordinary promotion with its generation and visible-layer count for privacy-safe field diagnostics.
+
 ## [0.1.7-alpha.1] - 2026-07-17
 
 ### Changed

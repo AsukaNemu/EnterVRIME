@@ -141,6 +141,7 @@ class VRChatImeApp:
             bg=INPUT_BG,
             fg=TEXT,
             insertbackground=PRIMARY,
+            insertofftime=0,
             selectbackground="#155e75",
             selectforeground=TEXT,
             relief="flat",
